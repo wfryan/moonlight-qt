@@ -1,6 +1,6 @@
 *pro.user
-
-
+Makefile
+Moonlight.app
 **/.vs/
 build/
 config.tests/*/.qmake.stash
