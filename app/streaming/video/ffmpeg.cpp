@@ -3,6 +3,8 @@
 #include "streaming/streamutils.h"
 #include "streaming/session.h"
 
+#include "logger.h"
+
 #include <h264_stream.h>
 
 #include "ffmpeg-renderers/sdlvid.h"
@@ -1379,6 +1381,10 @@ void FFmpegVideoDecoder::decoderThreadProc()
                     }
 
                     m_ActiveWndVideoStats.decodedFrames++;
+
+                    auto logger = Logger::GetInstance();
+                    logger->Log("Frame is rendered", LogLevel::INFO);
+                    printf("Frame rendered\n");
 
                     // Queue the frame for rendering (or render now if pacer is disabled)
                     m_Pacer->submitFrame(frame);

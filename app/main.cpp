@@ -12,6 +12,8 @@
 #include <QElapsedTimer>
 #include <QFile>
 
+#include "streaming/video/logger.h"
+
 // Don't let SDL hook our main function, since Qt is already
 // doing the same thing. This needs to be before any headers
 // that might include SDL.h themselves.
@@ -276,6 +278,10 @@ LONG WINAPI UnhandledExceptionHandler(struct _EXCEPTION_POINTERS *ExceptionInfo)
 
 int main(int argc, char *argv[])
 {
+    auto logger = Logger::GetInstance();
+    logger->SetPrefs("/home/echo532/log-file-output", LogLevel::ERROR);
+    logger->Log("Begin Log:", LogLevel::INFO);
+
     SDL_SetMainReady();
 
     // Set the app version for the QCommandLineParser's showVersion() command
