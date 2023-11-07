@@ -1,16 +1,17 @@
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <memory>
 #include <fstream>
 #include <chrono>
 #include <ctime>
+#include <sstream>
 
 enum class LogLevel {
     INFO = 0,
 	DEBUG = 1,
 	WARN = 3,
 	ERROR = 4,
-	yaDunFuckedUp = 5,
 };
 
 
@@ -25,8 +26,10 @@ class Logger{
     private:
         LogLevel logLevel;
         std::ofstream logFile;
+        int64_t startTime;
 
         static std::shared_ptr<Logger> loggerInstance;
         void FileOutput(const std::string& message);
         std::string CurrentTime();
+        std::string millisecondsToTimeFormat(int64_t milliseconds);
 };

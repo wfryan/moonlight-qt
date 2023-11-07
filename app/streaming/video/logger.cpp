@@ -6,7 +6,13 @@ void Logger::SetPrefs(std::string logFileName, LogLevel level){
 
     logLevel = level;
 
-    std::string input = logFileName + "/" + CurrentTime() + ".txt";
+	using namespace std::chrono;
+
+	milliseconds ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+
+	startTime = ms.count();
+
+    std::string input = logFileName + "/" + millisecondsToTimeFormat(startTime) + ".txt";
     
 
     logFile.open(input);
@@ -56,9 +62,33 @@ void Logger::FileOutput(const std::string& message){
     logFile << message << std::endl;
 }
 
-std::string Logger::CurrentTime(){
-	const std::time_t now = std::time(nullptr);
-    const std::tm calendar_time = *std::localtime( std::addressof(now) );
+// std::string Logger::CurrentTime(){
+// 	const std::time_t now = std::time(nullptr);
+//     const std::tm calendar_time = *std::localtime( std::addressof(now) );
 
-	return std::to_string(calendar_time.tm_hour) + ":" + std::to_string(calendar_time.tm_min) + ":" + std::to_string(calendar_time.tm_sec);
+// 	return std::to_string(calendar_time.tm_hour) + ":" + std::to_string(calendar_time.tm_min) + ":" + std::to_string(calendar_time.tm_sec);
+// }
+
+std::string Logger::CurrentTime(){
+	using namespace std::chrono;
+
+	milliseconds ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+
+	std::string output = millisecondsToTimeFormat(ms.count() - startTime);
+	return output;
+
+}
+
+std::string Logger::millisecondsToTimeFormat(int64_t milliseconds) {
+    // int hours = milliseconds / 3600000;
+    int minutes = (milliseconds % 3600000) / 60000;
+    int seconds = (milliseconds % 60000) / 1000;
+    int ms = milliseconds % 1000;
+
+    std::stringstream ss;
+    ss << std::setfill('0') << std::setw(2) << minutes << ":"
+       << std::setfill('0') << std::setw(2) << seconds << "."
+       << std::setfill('0') << std::setw(3) << ms;
+
+    return ss.str();
 }
