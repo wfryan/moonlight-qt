@@ -11,6 +11,8 @@
 #include "ffmpeg-renderers/renderer.h"
 #include "ffmpeg-renderers/pacer/pacer.h"
 #include <libavutil/frame.h>
+#include <unistd.h>
+
 // enum class LogLevel {
 //     INFO = 0,
 // 	DEBUG = 1,
@@ -31,6 +33,9 @@ class testQueue{
         int getQueueSize();
         static std::shared_ptr<testQueue> GetInstance(); //pointer of logger instance
         std::mutex queue_mutex;
+        void IPolicyQueue(AVFrame* frame, int maxlatency);
+        long getFrameTime();
+        void IPolicy(int minqueue, int displaylat, int frametime);
 
 
     private:
