@@ -363,12 +363,15 @@ void Pacer::renderFrame(AVFrame* frame)
 
     auto testQueue = testQueue::GetInstance();
     testQueue->enqueue(frame);
+}
 
-    //our_enqueue_thread = SDL_CreateThread(Pacer::ourEnqueueThreadProc, "enqeue thread", (void*)frame);
-    //our_dequeue_thread = SDL_CreateThread(Pacer::ourDequeueThreadProc, "deqeue thread", this);
 
-    //SDL_mutex.lock()
-
+void Pacer::renderFrameDequeue(AVFrame* frame)
+{
+     // Count time spent in Pacer's queues
+    Uint32 beforeRender = SDL_GetTicks();
+    m_VideoStats->totalPacerTime += beforeRender - frame->pkt_dts;
+     
     // Render it
     m_VsyncRenderer->renderFrame(frame);
     Uint32 afterRender = SDL_GetTicks();
@@ -446,3 +449,8 @@ void Pacer::submitFrame(AVFrame* frame)
         enqueueFrameForRenderingAndUnlock(frame);
     }
 }
+
+
+
+
+

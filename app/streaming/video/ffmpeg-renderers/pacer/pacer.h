@@ -37,6 +37,8 @@ public:
 
     void renderOnMainThread();
 
+    void renderFrameDequeue(AVFrame* frame);
+
 private:
     static int vsyncThread(void* context);
 

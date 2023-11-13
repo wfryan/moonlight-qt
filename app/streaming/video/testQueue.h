@@ -35,7 +35,8 @@ class testQueue{
         std::mutex queue_mutex;
         void IPolicyQueue(AVFrame* frame, int maxlatency);
         long getFrameTime();
-        void IPolicy(int minqueue, int displaylat, int frametime);
+        void IPolicy(long minqueue, int displaylat, int frametime);
+        //void run();
 
 
     private:
