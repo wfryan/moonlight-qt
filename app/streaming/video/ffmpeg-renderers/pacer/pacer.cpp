@@ -1,6 +1,9 @@
 #include "pacer.h"
 #include "streaming/streamutils.h"
 
+#include "streaming/video/testQueue.h"
+#include "streaming/video/logger.h"
+
 #ifdef Q_OS_WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -31,6 +34,8 @@
 Pacer::Pacer(IFFmpegRenderer* renderer, PVIDEO_STATS videoStats) :
     m_RenderThread(nullptr),
     m_VsyncThread(nullptr),
+    //our_enqueue_thread(nullptr),
+    //our_dequeue_thread(nullptr),
     m_Stopping(false),
     m_VsyncSource(nullptr),
     m_VsyncRenderer(renderer),
@@ -330,11 +335,39 @@ void Pacer::signalVsync()
     m_VsyncSignalled.wakeOne();
 }
 
+// int Pacer::ourEnqueueThreadProc(void* frame_input)
+// {
+//     auto logger = Logger::GetInstance();
+//     auto testQueue = testQueue::GetInstance();
+//     logger->Log("Inside Enqueue thread from Pacer.cpp line 340", LogLevel::INFO);
+//     testQueue->enqueue(static_cast<AVFrame*>(frame_input));
+//     return 0;
+// }
+
+
+// int Pacer::ourDequeueThreadProc(void* context)
+// {
+//     auto logger = Logger::GetInstance();
+//     logger->Log("Inside Dequeue thread from Pacer.cpp line 349", LogLevel::INFO);
+//     auto testQueue = testQueue::GetInstance();
+//     testQueue->dequeue();
+//     return 0;
+// }
+
+
 void Pacer::renderFrame(AVFrame* frame)
 {
     // Count time spent in Pacer's queues
     Uint32 beforeRender = SDL_GetTicks();
     m_VideoStats->totalPacerTime += beforeRender - frame->pkt_dts;
+
+    auto testQueue = testQueue::GetInstance();
+    testQueue->enqueue(frame);
+
+    //our_enqueue_thread = SDL_CreateThread(Pacer::ourEnqueueThreadProc, "enqeue thread", (void*)frame);
+    //our_dequeue_thread = SDL_CreateThread(Pacer::ourDequeueThreadProc, "deqeue thread", this);
+
+    //SDL_mutex.lock()
 
     // Render it
     m_VsyncRenderer->renderFrame(frame);
