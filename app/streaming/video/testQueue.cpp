@@ -14,13 +14,15 @@ void testQueue::enqueue(AVFrame* frame){
 }
 
 void testQueue::dequeue(){
-    auto logger = Logger::GetInstance();
-    if(myqueue.size() >= 30){
-        myqueue.pop();
-        logger->Log("Dequeue Frame", LogLevel::INFO);
-    }else{
-        return;
-    }
+    logger->Log("Dequeue Frame", LogLevel::INFO);
+    myqueue.pop();
+    // auto logger = Logger::GetInstance();
+    // if(myqueue.size() >= 30){
+    //     myqueue.pop();
+    //     logger->Log("Dequeue Frame", LogLevel::INFO);
+    // }else{
+    //     return;
+    // }
 }
 
 void testQueue::queueSize(){
