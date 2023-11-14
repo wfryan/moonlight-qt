@@ -8,10 +8,12 @@
 #include <sstream>
 
 enum class LogLevel {
-    INFO = 0,
-	DEBUG = 1,
+    GRAPHING = 0,
+    INFO = 1,
+	DEBUG = 2,
 	WARN = 3,
 	ERROR = 4,
+    
 };
 
 
