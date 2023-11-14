@@ -287,7 +287,7 @@ void dequeue(){
     auto testQueue = testQueue::GetInstance();
 
     while(true){
-        testQueue->IPolicy(20);
+        testQueue->IPolicy(5);
     }
 }
 
@@ -301,8 +301,8 @@ int main(int argc, char *argv[])
     auto testQueue = testQueue::GetInstance();
 
     //dequeue_thread = SDL_CreateThread(dequeue, "dequeue thread", (void*) x);
-    std::thread dequeue_thread(dequeue);
-    dequeue_thread.detach();
+    //std::thread dequeue_thread(dequeue);
+    //dequeue_thread.detach();
 
     SDL_SetMainReady();
 

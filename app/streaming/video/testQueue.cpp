@@ -50,6 +50,27 @@ int testQueue::getQueueSize()
     return myqueue.size();
 }
 
+bool testQueue::dequeueing(){
+    auto logger = Logger::GetInstance();
+    switch (queueState)
+    {
+    case 0:
+    logger->Log("Case 0", LogLevel::INFO);
+        if (getQueueSize() == 5)
+        {
+            queueState = 1;
+            return true;
+        }
+        return false;
+        break;
+    case 1:
+        logger->Log("Case 1", LogLevel::INFO);
+        return true;
+        break;
+    }
+    return false;
+}
+
 std::shared_ptr<testQueue> testQueue::GetInstance()
 {
     if (queueInstance == nullptr)
@@ -59,7 +80,7 @@ std::shared_ptr<testQueue> testQueue::GetInstance()
     return queueInstance;
 }
 
-void testQueue::IPolicy(long unsigned int minqueue)
+AVFrame* testQueue::IPolicy(long unsigned int minqueue)
 {
     time_point<Clock> start = Clock::now();
     auto logger = Logger::GetInstance();
@@ -70,7 +91,8 @@ void testQueue::IPolicy(long unsigned int minqueue)
         if (myqueue.size() >= minqueue)
         {
             queue_mutex.lock();
-            queue_Pacer->renderFrameDequeue(myqueue.front());
+            //queue_Pacer->renderFrameDequeue(myqueue.front());
+            AVFrame* currentf = myqueue.front();
             myqueue.pop();
             queue_mutex.unlock();
             logger->Log("Dequeue Frame", LogLevel::INFO);
@@ -81,11 +103,14 @@ void testQueue::IPolicy(long unsigned int minqueue)
             {
                 sleep_for(run_time);
             }
+            return currentf;
         }
+        return NULL;
         break;
     case 1:
         queue_mutex.lock();
-        queue_Pacer->renderFrameDequeue(myqueue.front());
+        //queue_Pacer->renderFrameDequeue(myqueue.front());
+        AVFrame* currentf = myqueue.front();
         myqueue.pop();
         queue_mutex.unlock();
         logger->Log("Dequeue Frame", LogLevel::INFO);
@@ -95,6 +120,7 @@ void testQueue::IPolicy(long unsigned int minqueue)
         {
             sleep_for(run_time);
         }
+        return currentf;
         break;
     }
 }
