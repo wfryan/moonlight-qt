@@ -33,9 +33,9 @@ class testQueue{
         int getQueueSize();
         static std::shared_ptr<testQueue> GetInstance(); //pointer of logger instance
         std::mutex queue_mutex;
-        void IPolicyQueue(AVFrame* frame, int maxlatency);
+        void IPolicyQueue(AVFrame* frame, long maxlatency);
         long getFrameTime();
-        void IPolicy(long minqueue, int displaylat, int frametime);
+        void IPolicy(long unsigned int minqueue);
         //void run();
 
 

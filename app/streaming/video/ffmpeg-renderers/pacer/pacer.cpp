@@ -362,7 +362,7 @@ void Pacer::renderFrame(AVFrame* frame)
     m_VideoStats->totalPacerTime += beforeRender - frame->pkt_dts;
 
     auto testQueue = testQueue::GetInstance();
-    testQueue->enqueue(frame);
+    testQueue->IPolicyQueue(frame, 33);
 }
 
 

@@ -2,6 +2,8 @@
 #include "logger.h"
 
 using namespace std::chrono;
+using Clock = steady_clock;
+using std::this_thread::sleep_for;
 
 std::shared_ptr<testQueue> testQueue::queueInstance;
 std::queue<AVFrame*> myqueue; 
@@ -10,6 +12,7 @@ long lastFrameTime = 0;
 // State 0 = queueing, State 1 = Dequeuing  
 int queueState = 0;
 long currentLatency = 0;
+Pacer* queue_Pacer;
 
 void testQueue::enqueue(AVFrame* frame){
     auto logger = Logger::GetInstance();
@@ -46,40 +49,43 @@ std::shared_ptr<testQueue> testQueue::GetInstance(){
     return queueInstance;
 }
 
-void testQueue::IPolicy(long minqueue, int displaylat, int frametime){
-    long start_time = high_resolution_clock::now();
+void testQueue::IPolicy(long unsigned int minqueue){
+    time_point<Clock> start = Clock::now();
     auto logger = Logger::GetInstance();
+    milliseconds fpms = milliseconds(17);
     switch (queueState)
     {
     case 0  :
         if (myqueue.size() >= minqueue){
-            Pacer::renderFrameDequeue(myqueue.pop());
+            queue_mutex.lock();
+            queue_Pacer->renderFrameDequeue(myqueue.front());
+            myqueue.pop();
+            queue_mutex.unlock();
             logger->Log("Dequeue Frame", LogLevel::INFO);
             queueState = 1;
-            long end_time = high_resolution_clock::now();
-            long run_time = duration_cast<milliseconds>(end_time - start_time);
-            if(run_time > duration_cast<milliseconds>(16.67)){
-                sleep(0);
-            }else{
-                sleep(duration_cast<milliseconds>(end_time - start_time));    
+            time_point<Clock> end = Clock::now();
+            milliseconds run_time = duration_cast<milliseconds>(end - start);
+            if(!(run_time > fpms)){
+                sleep_for(run_time);   
             }
         }
         break;
     case 1:
-        Pacer::renderFrameDequeue(myqueue.pop());        
+        queue_mutex.lock();
+        queue_Pacer->renderFrameDequeue(myqueue.front());
+        myqueue.pop();      
+        queue_mutex.unlock();  
         logger->Log("Dequeue Frame", LogLevel::INFO);
-        long end_time = high_resolution_clock::now();
-        long run_time = duration_cast<milliseconds>(end_time - start_time);
-        if(run_time > duration_cast<milliseconds>(16.67)){
-            sleep(0);
-        }else{
-            sleep(duration_cast<milliseconds>(end_time - start_time));    
+        time_point<Clock> end = Clock::now();
+        milliseconds run_time = duration_cast<milliseconds>(end - start);
+        if(!(run_time > fpms)){
+            sleep_for(run_time);   
         }
         break;
     }
 }
 
-void testQueue::IPolicyQueue(AVFrame* frame, int maxlatency){
+void testQueue::IPolicyQueue(AVFrame* frame, long maxlatency){
     long timeArrived= getFrameTime();
     long latency = timeArrived - lastFrameTime;
     auto logger = Logger::GetInstance();
@@ -91,7 +97,9 @@ void testQueue::IPolicyQueue(AVFrame* frame, int maxlatency){
         logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
         lastFrameTime = timeArrived;
     }else{
+        queue_mutex.lock();
         myqueue.push(frame);
+        queue_mutex.unlock();
         lastFrameTime = timeArrived;
         logger->Log(("Queueing Frame" + std::to_string(frame->pts)), LogLevel::INFO);
     }  

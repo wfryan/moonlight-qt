@@ -287,16 +287,7 @@ void dequeue(){
     auto testQueue = testQueue::GetInstance();
 
     while(true){
-        if(testQueue->getQueueSize() > 30){
-            testQueue->queue_mutex.lock();
-            for(int i = 0; i < 15; i++){
-                testQueue->dequeue();
-                logger->Log("Currently popping frame from queue" + std::to_string(i), LogLevel::INFO);
-            }
-            testQueue->queue_mutex.unlock();
-        }else{
-            usleep(30000); //usleep takes microseconds, this equates to 30 ms
-        }
+        testQueue->IPolicy(20);
     }
 }
 
@@ -304,7 +295,7 @@ int main(int argc, char *argv[])
 {
 
     auto logger = Logger::GetInstance();
-    logger->SetPrefs("/home/yliang6/log_files", LogLevel::ERROR);
+    logger->SetPrefs("/home/atest21/log-output", LogLevel::ERROR);
     logger->Log("Begin Log:", LogLevel::INFO);
 
     auto testQueue = testQueue::GetInstance();
