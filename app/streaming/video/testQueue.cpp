@@ -5,6 +5,8 @@ using namespace std::chrono;
 using Clock = steady_clock;
 using std::this_thread::sleep_for;
 
+milliseconds start = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+
 std::shared_ptr<testQueue> testQueue::queueInstance;
 std::queue<AVFrame *> myqueue;
 std::mutex queue_mutex;
@@ -124,5 +126,6 @@ milliseconds testQueue::getFrameTime()
 {
     using namespace std::chrono;
     milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-    return ms;
+    milliseconds timems = ms - start; 
+    return timems;
 }
