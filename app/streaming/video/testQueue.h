@@ -13,6 +13,7 @@
 #include <libavutil/frame.h>
 #include <unistd.h>
 
+using namespace std::chrono;
 // enum class LogLevel {
 //     INFO = 0,
 // 	DEBUG = 1,
@@ -33,8 +34,8 @@ class testQueue{
         int getQueueSize();
         static std::shared_ptr<testQueue> GetInstance(); //pointer of logger instance
         std::mutex queue_mutex;
-        void IPolicyQueue(AVFrame* frame, long maxlatency);
-        long getFrameTime();
+        void IPolicyQueue(AVFrame* frame);
+        milliseconds getFrameTime();
         void IPolicy(long unsigned int minqueue);
         //void run();
 
