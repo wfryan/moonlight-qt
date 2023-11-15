@@ -557,6 +557,11 @@ bool FFmpegVideoDecoder::completeInitialization(const AVCodec* decoder, enum AVP
         }
     }
 
+    auto logger = Logger::GetInstance();
+    logger->Log("Before making dequeue thread", LogLevel::INFO);
+    m_DequeueThread = SDL_CreateThread(Pacer::renderFrameDequeueThreadProc, "dequeue thread", (void*) this);
+    logger->Log("after making dequeue thread", LogLevel::INFO);
+
     return true;
 }
 

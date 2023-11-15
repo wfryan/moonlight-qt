@@ -394,21 +394,31 @@ AVFrame* Pacer::renderFrameDequeue(AVFrame* frame)
 }
 
 */
-void Pacer::renderFrame(AVFrame *frame)
+
+int Pacer::renderFrameDequeueThreadProc(void *context)
+{
+    Pacer *me = reinterpret_cast<Pacer *>(context);
+    me->renderFrameDequeueThread();
+    return 0;
+}
+
+void Pacer::renderFrameDequeueThread()
 {
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
-    testQueue->IPolicyQueue(frame);
+
     if (testQueue->dequeueing())
     {
         AVFrame *framede = testQueue->IPolicy(5);
         testQueue->queueSize();
         Uint32 beforeRender = SDL_GetTicks();
-        logger->Log("Time before render " + std::to_string(beforeRender) + " Frame pkt " + std::to_string(frame->pkt_dts), LogLevel::INFO);
+        logger->Log("Time before render " + std::to_string(beforeRender) + " Frame pkt " + std::to_string(framede->pkt_dts), LogLevel::INFO);
         m_VideoStats->totalPacerTime += beforeRender - framede->pkt_dts;
 
         // Render it
+
         m_VsyncRenderer->renderFrame(framede);
+        logger->Log("after render frame ", LogLevel::INFO);
         Uint32 afterRender = SDL_GetTicks();
 
         m_VideoStats->totalRenderTime += afterRender - beforeRender;
@@ -463,6 +473,17 @@ void Pacer::renderFrame(AVFrame *frame)
 
         m_FrameQueueLock.unlock();
     }
+    else
+    {
+        usleep(10000);
+    }
+}
+
+void Pacer::renderFrame(AVFrame *frame)
+{
+    auto logger = Logger::GetInstance();
+    auto testQueue = testQueue::GetInstance();
+    testQueue->IPolicyQueue(frame);
 }
 
 void Pacer::dropFrameForEnqueue(QQueue<AVFrame *> &queue)

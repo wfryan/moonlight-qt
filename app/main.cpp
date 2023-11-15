@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
 {
 
     auto logger = Logger::GetInstance();
-    logger->SetPrefs("/home/atest21/log-output", LogLevel::ERROR);
+    logger->SetPrefs("/home/yliang6/log_files", LogLevel::ERROR);
     logger->Log("Begin Log:", LogLevel::INFO);
 
     auto testQueue = testQueue::GetInstance();
