@@ -14,7 +14,7 @@ milliseconds lastFrameTime = milliseconds::zero();
 // State 0 = queueing, State 1 = Dequeuing
 int queueState = 0;
 milliseconds currentLatency;
-Pacer *queue_Pacer;
+//Pacer *queue_Pacer;
 
 void testQueue::enqueue(AVFrame *frame)
 {
@@ -47,7 +47,10 @@ void testQueue::queueSize()
 
 int testQueue::getQueueSize()
 {
-    return myqueue.size();
+    queue_mutex.lock();
+    int size = myqueue.size();
+    queue_mutex.unlock();
+    return size;
 }
 
 bool testQueue::dequeueing(){
@@ -105,7 +108,7 @@ AVFrame* testQueue::IPolicy(long unsigned int minqueue)
             }
             return currentf;
         }
-        return NULL;
+        return nullptr;
         break;
     case 1:
         queue_mutex.lock();

@@ -404,7 +404,7 @@ void Pacer::renderFrame(AVFrame *frame)
         AVFrame *framede = testQueue->IPolicy(5);
         testQueue->queueSize();
         Uint32 beforeRender = SDL_GetTicks();
-        logger->Log("Time before render " + std::to_string(beforeRender) + " Frame pkt " + std::to_string(frame->pkt_dts), LogLevel::INFO);
+        logger->Log("Time before render " + std::to_string(beforeRender) + " Frame pkt " + std::to_string(framede->pkt_dts), LogLevel::INFO);
         m_VideoStats->totalPacerTime += beforeRender - framede->pkt_dts;
 
         // Render it
