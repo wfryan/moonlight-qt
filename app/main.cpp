@@ -295,11 +295,7 @@ int main(int argc, char *argv[])
 {
 
     auto logger = Logger::GetInstance();
-<<<<<<< HEAD
     logger->SetPrefs("/home/echo532/log-file-output", LogLevel::GRAPHING);
-=======
-    logger->SetPrefs("/home/atest21/log-output", LogLevel::ERROR);
->>>>>>> I-Policy
     logger->Log("Begin Log:", LogLevel::INFO);
 
     auto testQueue = testQueue::GetInstance();
