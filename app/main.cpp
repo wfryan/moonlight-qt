@@ -11,8 +11,14 @@
 #include <QCursor>
 #include <QElapsedTimer>
 #include <QFile>
-
+#include <iostream>
+#include <unistd.h>
+#include <thread>
 #include "streaming/video/logger.h"
+#include "streaming/video/testQueue.h"
+
+//SDL_Thread* dequeue_thread;
+//pthread_t* test_dequeue;
 
 // Don't let SDL hook our main function, since Qt is already
 // doing the same thing. This needs to be before any headers
@@ -276,11 +282,31 @@ LONG WINAPI UnhandledExceptionHandler(struct _EXCEPTION_POINTERS *ExceptionInfo)
 
 #endif
 
+void dequeue(){
+    auto logger = Logger::GetInstance();
+    auto testQueue = testQueue::GetInstance();
+
+    while(true){
+        testQueue->IPolicy(5);
+    }
+}
+
 int main(int argc, char *argv[])
 {
+
     auto logger = Logger::GetInstance();
+<<<<<<< HEAD
     logger->SetPrefs("/home/echo532/log-file-output", LogLevel::GRAPHING);
+=======
+    logger->SetPrefs("/home/atest21/log-output", LogLevel::ERROR);
+>>>>>>> I-Policy
     logger->Log("Begin Log:", LogLevel::INFO);
+
+    auto testQueue = testQueue::GetInstance();
+
+    //dequeue_thread = SDL_CreateThread(dequeue, "dequeue thread", (void*) x);
+    //std::thread dequeue_thread(dequeue);
+    //dequeue_thread.detach();
 
     SDL_SetMainReady();
 
