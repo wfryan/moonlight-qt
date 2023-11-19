@@ -401,7 +401,8 @@ void Pacer::renderFrame(AVFrame *frame)
     testQueue->IPolicyQueue(frame);
     if (testQueue->dequeueing())
     {
-        AVFrame *framede = testQueue->IPolicy(5);
+        //note: value of 20 currently has no effect, set by dequeuing variable
+        AVFrame *framede = testQueue->IPolicy(20);
         testQueue->queueSize();
         Uint32 beforeRender = SDL_GetTicks();
         logger->Log("Time before render " + std::to_string(beforeRender) + " Frame pkt " + std::to_string(framede->pkt_dts), LogLevel::INFO);

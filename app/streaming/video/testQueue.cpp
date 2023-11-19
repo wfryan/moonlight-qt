@@ -32,6 +32,7 @@ void testQueue::dequeue()
     {
         myqueue.pop();
         logger->Log("Dequeue Frame", LogLevel::INFO);
+        
     }
     else
     {
@@ -42,7 +43,7 @@ void testQueue::dequeue()
 void testQueue::queueSize()
 {
     auto logger = Logger::GetInstance();
-    logger->Log(("Current queue size:" + std::to_string(myqueue.size())), LogLevel::INFO);
+    
 }
 
 int testQueue::getQueueSize()
@@ -59,7 +60,9 @@ bool testQueue::dequeueing(){
     {
     case 0:
     logger->Log("Case 0", LogLevel::INFO);
-        if (getQueueSize() == 5)
+
+        //note: this actually sets the size of the queue
+        if (getQueueSize() == 20)
         {
             queueState = 1;
             return true;
@@ -99,6 +102,8 @@ AVFrame* testQueue::IPolicy(long unsigned int minqueue)
             myqueue.pop();
             queue_mutex.unlock();
             logger->Log("Dequeue Frame", LogLevel::INFO);
+            logger->Log(std::to_string(myqueue.size()), LogLevel::GRAPHING);
+            
             queueState = 1;
             time_point<Clock> end = Clock::now();
             milliseconds run_time = duration_cast<milliseconds>(end - start);
@@ -117,6 +122,7 @@ AVFrame* testQueue::IPolicy(long unsigned int minqueue)
         myqueue.pop();
         queue_mutex.unlock();
         logger->Log("Dequeue Frame", LogLevel::INFO);
+        logger->Log(std::to_string(myqueue.size()), LogLevel::GRAPHING);
         time_point<Clock> end = Clock::now();
         milliseconds run_time = duration_cast<milliseconds>(end - start);
         if (!(run_time > fpms))
@@ -148,6 +154,7 @@ void testQueue::IPolicyQueue(AVFrame *frame)
         queue_mutex.unlock();
         lastFrameTime = timeArrived;
         logger->Log(("Queueing Frame" + std::to_string(frame->pts)), LogLevel::INFO);
+        logger->Log(std::to_string(myqueue.size()), LogLevel::GRAPHING);
     }
 }
 
