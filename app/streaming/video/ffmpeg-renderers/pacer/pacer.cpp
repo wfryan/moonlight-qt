@@ -40,7 +40,8 @@ Pacer::Pacer(IFFmpegRenderer *renderer, PVIDEO_STATS videoStats) : m_RenderThrea
                                                                    m_VsyncRenderer(renderer),
                                                                    m_MaxVideoFps(0),
                                                                    m_DisplayFps(0),
-                                                                   m_VideoStats(videoStats)
+                                                                   m_VideoStats(videoStats),
+                                                                   m_DequeueThread(nullptr)
 {
 }
 
@@ -149,6 +150,11 @@ int Pacer::vsyncThread(void *context)
 int Pacer::renderThread(void *context)
 {
     Pacer *me = reinterpret_cast<Pacer *>(context);
+
+    auto logger = Logger::GetInstance();
+    logger->Log("Before making dequeue thread", LogLevel::INFO);
+    me->m_DequeueThread = SDL_CreateThread(Pacer::renderFrameDequeueThreadProc, "dequeue thread", me);
+    logger->Log("after making dequeue thread", LogLevel::INFO);
 
     if (SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH) < 0)
     {
@@ -349,16 +355,22 @@ bool Pacer::initialize(SDL_Window *window, int maxVideoFps, bool enablePacing)
                     m_DisplayFps, m_MaxVideoFps);
     }
 
+    auto logger = Logger::GetInstance();
+    logger->Log("Outside Vsync", LogLevel::INFO);
+
     if (m_VsyncSource != nullptr)
     {
         m_VsyncThread = SDL_CreateThread(Pacer::vsyncThread, "PacerVsync", this);
     }
 
+
     if (m_VsyncRenderer->isRenderThreadSupported())
     {
+        logger->Log("Inside Vsync", LogLevel::INFO);
         m_RenderThread = SDL_CreateThread(Pacer::renderThread, "PacerRender", this);
-    }
-
+        
+    } 
+    logger->Log("render support" + std::to_string(m_VsyncRenderer->isRenderThreadSupported()), LogLevel::INFO);
     return true;
 }
 
@@ -406,7 +418,8 @@ void Pacer::renderFrameDequeueThread()
 {
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
-
+    logger->Log("Render Frame function called", LogLevel::INFO);
+    while(true){
     if (testQueue->dequeueing())
     {
         AVFrame *framede = testQueue->IPolicy(5);
@@ -476,6 +489,7 @@ void Pacer::renderFrameDequeueThread()
     else
     {
         usleep(10000);
+    }
     }
 }
 
