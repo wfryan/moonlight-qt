@@ -1388,7 +1388,7 @@ void FFmpegVideoDecoder::decoderThreadProc()
                     m_ActiveWndVideoStats.decodedFrames++;
 
                     auto logger = Logger::GetInstance();
-                    logger->Log(std::to_string(frame->pts), LogLevel::INFO);
+                    //logger->Log(std::to_string(frame->pts), LogLevel::GRAPHING);
                     printf("Frame rendered\n");
 
                     // Queue the frame for rendering (or render now if pacer is disabled)

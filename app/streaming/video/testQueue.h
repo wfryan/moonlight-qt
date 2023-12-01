@@ -14,13 +14,7 @@
 // #include <unistd.h>
 
 using namespace std::chrono;
-// enum class LogLevel {
-//     INFO = 0,
-// 	DEBUG = 1,
-// 	WARN = 3,
-// 	ERROR = 4,
-// 	yaDunFuckedUp = 5,
-// };
+
 
 
 class testQueue{

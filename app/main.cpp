@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
 {
 
     auto logger = Logger::GetInstance();
-    logger->SetPrefs("C:/Users/claypool/Desktop/log-file-output", LogLevel::INFO);
+    logger->SetPrefs("/home/echo532/log-file-output", LogLevel::GRAPHING);
     logger->Log("Begin Log:", LogLevel::INFO);
 
 

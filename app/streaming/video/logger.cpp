@@ -36,6 +36,9 @@ void Logger::Log(std::string input, LogLevel messageLevel){
     if(messageLevel <= logLevel){
         std::string logType;
         switch (messageLevel) {
+		case LogLevel::GRAPHING:
+			logType = "GRAPHING: ";
+			break;
 		case LogLevel::DEBUG:
 			logType = "DEBUG: ";
 			break;
@@ -48,11 +51,22 @@ void Logger::Log(std::string input, LogLevel messageLevel){
         case LogLevel::myERROR:
 			logType = "ERROR: ";
 			break;
+		
 		default:
 			logType = "NONE: ";
 			break;
 		}
-        FileOutput((CurrentTime() + " - " + logType + input));
+
+
+		if(messageLevel == LogLevel::GRAPHING){
+			using namespace std::chrono;
+			milliseconds ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+			std::string output = std::to_string(ms.count() - startTime);
+			FileOutput(output + " " + input);
+		} else {
+			FileOutput((CurrentTime() + " - " + logType + input));
+		}
+        
     }
 
     
@@ -61,7 +75,6 @@ void Logger::Log(std::string input, LogLevel messageLevel){
 void Logger::FileOutput(const std::string& message){
     logFile << message << std::endl;
 }
-
 
 std::string Logger::CurrentTime(){
 	using namespace std::chrono;
