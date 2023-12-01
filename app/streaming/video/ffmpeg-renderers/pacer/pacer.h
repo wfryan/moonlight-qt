@@ -37,6 +37,10 @@ public:
 
     void renderOnMainThread();
 
+    static int renderFrameDequeueThreadProc(void* context);
+
+    //AVFrame* renderFrameDequeue(AVFrame* frame);
+
 private:
     static int vsyncThread(void* context);
 
@@ -50,6 +54,8 @@ private:
 
     void dropFrameForEnqueue(QQueue<AVFrame*>& queue);
 
+    void renderFrameDequeueThread();
+
     QQueue<AVFrame*> m_RenderQueue;
     QQueue<AVFrame*> m_PacingQueue;
     QQueue<int> m_PacingQueueHistory;
@@ -60,6 +66,7 @@ private:
     QWaitCondition m_VsyncSignalled;
     SDL_Thread* m_RenderThread;
     SDL_Thread* m_VsyncThread;
+    
     bool m_Stopping;
 
     IVsyncSource* m_VsyncSource;
@@ -68,4 +75,6 @@ private:
     int m_DisplayFps;
     PVIDEO_STATS m_VideoStats;
     int m_RendererAttributes;
+
+    SDL_Thread* m_DequeueThread;
 };

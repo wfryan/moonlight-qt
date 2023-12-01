@@ -9,8 +9,11 @@
 #include <thread>
 #include "decoder.h"
 #include "ffmpeg-renderers/renderer.h"
-#include "ffmpeg-renderers/pacer/pacer.h"
+//#include "ffmpeg-renderers/pacer/pacer.h"
 #include <libavutil/frame.h>
+// #include <unistd.h>
+
+using namespace std::chrono;
 // enum class LogLevel {
 //     INFO = 0,
 // 	DEBUG = 1,
@@ -31,6 +34,11 @@ class testQueue{
         int getQueueSize();
         static std::shared_ptr<testQueue> GetInstance(); //pointer of logger instance
         std::mutex queue_mutex;
+        void IPolicyQueue(AVFrame* frame);
+        milliseconds getFrameTime();
+        AVFrame* IPolicy(long unsigned int minqueue);
+        bool dequeueing();
+        //void run();
 
 
     private:

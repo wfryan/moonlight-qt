@@ -12,7 +12,7 @@ void Logger::SetPrefs(std::string logFileName, LogLevel level){
 
 	startTime = ms.count();
 
-    std::string input = logFileName + "/" + millisecondsToTimeFormat(startTime) + ".txt";
+    std::string input = logFileName + "/" + "output" + ".txt";
     
 
     logFile.open(input);
@@ -45,7 +45,7 @@ void Logger::Log(std::string input, LogLevel messageLevel){
 		case LogLevel::WARN:
 			logType = "WARN: ";
 			break;
-		case LogLevel::ERROR:
+        case LogLevel::myERROR:
 			logType = "ERROR: ";
 			break;
 		default:
@@ -62,12 +62,6 @@ void Logger::FileOutput(const std::string& message){
     logFile << message << std::endl;
 }
 
-// std::string Logger::CurrentTime(){
-// 	const std::time_t now = std::time(nullptr);
-//     const std::tm calendar_time = *std::localtime( std::addressof(now) );
-
-// 	return std::to_string(calendar_time.tm_hour) + ":" + std::to_string(calendar_time.tm_min) + ":" + std::to_string(calendar_time.tm_sec);
-// }
 
 std::string Logger::CurrentTime(){
 	using namespace std::chrono;
