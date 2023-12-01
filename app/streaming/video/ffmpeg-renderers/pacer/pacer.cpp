@@ -379,34 +379,6 @@ void Pacer::signalVsync()
     m_VsyncSignalled.wakeOne();
 }
 
-// int Pacer::ourEnqueueThreadProc(void* frame_input)
-// {
-//     auto logger = Logger::GetInstance();
-//     auto testQueue = testQueue::GetInstance();
-//     logger->Log("Inside Enqueue thread from Pacer.cpp line 340", LogLevel::INFO);
-//     testQueue->enqueue(static_cast<AVFrame*>(frame_input));
-//     return 0;
-// }
-
-// int Pacer::ourDequeueThreadProc(void* context)
-// {
-//     auto logger = Logger::GetInstance();
-//     logger->Log("Inside Dequeue thread from Pacer.cpp line 349", LogLevel::INFO);
-//     auto testQueue = testQueue::GetInstance();
-//     testQueue->dequeue();
-//     return 0;
-// }
-
-/*
-AVFrame* Pacer::renderFrameDequeue(AVFrame* frame)
-{
-   auto testQueue = testQueue::GetInstance();
-   //testQueue->IPolicyQueue(frame);
-   return frame;
-}
-
-*/
-
 int Pacer::renderFrameDequeueThreadProc(void *context)
 {
     Pacer *me = reinterpret_cast<Pacer *>(context);
@@ -488,7 +460,7 @@ void Pacer::renderFrameDequeueThread()
     }
     else
     {
-        usleep(10000);
+        Sleep(10000);
     }
     }
 }
