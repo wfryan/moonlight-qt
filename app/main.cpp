@@ -12,10 +12,9 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <iostream>
-#include <unistd.h>
+// #include <unistd.h>
 #include <thread>
 #include "streaming/video/logger.h"
-#include "streaming/video/testQueue.h"
 
 //SDL_Thread* dequeue_thread;
 //pthread_t* test_dequeue;
@@ -282,14 +281,6 @@ LONG WINAPI UnhandledExceptionHandler(struct _EXCEPTION_POINTERS *ExceptionInfo)
 
 #endif
 
-void dequeue(){
-    auto logger = Logger::GetInstance();
-    auto testQueue = testQueue::GetInstance();
-
-    while(true){
-        testQueue->IPolicy(5);
-    }
-}
 
 int main(int argc, char *argv[])
 {
@@ -298,11 +289,6 @@ int main(int argc, char *argv[])
     logger->SetPrefs("/home/echo532/log-file-output", LogLevel::GRAPHING);
     logger->Log("Begin Log:", LogLevel::INFO);
 
-    auto testQueue = testQueue::GetInstance();
-
-    //dequeue_thread = SDL_CreateThread(dequeue, "dequeue thread", (void*) x);
-    //std::thread dequeue_thread(dequeue);
-    //dequeue_thread.detach();
 
     SDL_SetMainReady();
 

@@ -88,7 +88,7 @@ std::shared_ptr<testQueue> testQueue::GetInstance()
 
 AVFrame* testQueue::IPolicy(long unsigned int minqueue)
 {
-    time_point<Clock> start = Clock::now();
+    milliseconds start = getFrameTime();
     auto logger = Logger::GetInstance();
     milliseconds fpms = milliseconds(17);
     switch (queueState)
@@ -105,11 +105,13 @@ AVFrame* testQueue::IPolicy(long unsigned int minqueue)
             logger->Log(std::to_string(myqueue.size()), LogLevel::GRAPHING);
             
             queueState = 1;
-            time_point<Clock> end = Clock::now();
-            milliseconds run_time = duration_cast<milliseconds>(end - start);
-            if (!(run_time > fpms))
+            milliseconds end = getFrameTime();
+            milliseconds run_time = (end - start);
+            logger->Log("Run TIme " + std::to_string(run_time.count()) + " fpms "+std::to_string(fpms.count())+ " end "+std::to_string(end.count())+ " start "+std::to_string(start.count()), LogLevel::INFO);
+            if (run_time < fpms)
             {
-                sleep_for(run_time);
+                logger->Log("Sleep ", LogLevel::INFO);
+                sleep_for(fpms-run_time);
             }
             return currentf;
         }
@@ -122,12 +124,13 @@ AVFrame* testQueue::IPolicy(long unsigned int minqueue)
         myqueue.pop();
         queue_mutex.unlock();
         logger->Log("Dequeue Frame", LogLevel::INFO);
-        logger->Log(std::to_string(myqueue.size()), LogLevel::GRAPHING);
-        time_point<Clock> end = Clock::now();
-        milliseconds run_time = duration_cast<milliseconds>(end - start);
-        if (!(run_time > fpms))
+        milliseconds end = getFrameTime();
+        milliseconds run_time = (end - start);
+        logger->Log("Run TIme " + std::to_string(run_time.count()) + " fpms "+std::to_string(fpms.count())+ " end "+std::to_string(end.count())+ " start "+std::to_string(start.count()), LogLevel::INFO);
+        if (run_time < fpms)
         {
-            sleep_for(run_time);
+            logger->Log("Sleep ", LogLevel::INFO);
+            sleep_for(fpms-run_time);
         }
         return currentf;
         break;

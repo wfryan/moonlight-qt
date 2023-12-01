@@ -12,7 +12,7 @@ void Logger::SetPrefs(std::string logFileName, LogLevel level){
 
 	startTime = ms.count();
 
-    std::string input = logFileName + "/" + millisecondsToTimeFormat(startTime) + ".txt";
+    std::string input = logFileName + "/" + "output" + ".txt";
     
 
     logFile.open(input);
@@ -48,7 +48,7 @@ void Logger::Log(std::string input, LogLevel messageLevel){
 		case LogLevel::WARN:
 			logType = "WARN: ";
 			break;
-		case LogLevel::ERROR:
+        case LogLevel::myERROR:
 			logType = "ERROR: ";
 			break;
 		
