@@ -40,7 +40,8 @@ Pacer::Pacer(IFFmpegRenderer *renderer, PVIDEO_STATS videoStats) : m_RenderThrea
                                                                    m_VsyncRenderer(renderer),
                                                                    m_MaxVideoFps(0),
                                                                    m_DisplayFps(0),
-                                                                   m_VideoStats(videoStats)
+                                                                   m_VideoStats(videoStats),
+                                                                   m_DequeueThread(nullptr)
 {
 }
 
@@ -149,6 +150,11 @@ int Pacer::vsyncThread(void *context)
 int Pacer::renderThread(void *context)
 {
     Pacer *me = reinterpret_cast<Pacer *>(context);
+
+    auto logger = Logger::GetInstance();
+    logger->Log("Before making dequeue thread", LogLevel::INFO);
+    me->m_DequeueThread = SDL_CreateThread(Pacer::renderFrameDequeueThreadProc, "dequeue thread", me);
+    logger->Log("after making dequeue thread", LogLevel::INFO);
 
     if (SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH) < 0)
     {
@@ -349,16 +355,22 @@ bool Pacer::initialize(SDL_Window *window, int maxVideoFps, bool enablePacing)
                     m_DisplayFps, m_MaxVideoFps);
     }
 
+    auto logger = Logger::GetInstance();
+    logger->Log("Outside Vsync", LogLevel::INFO);
+
     if (m_VsyncSource != nullptr)
     {
         m_VsyncThread = SDL_CreateThread(Pacer::vsyncThread, "PacerVsync", this);
     }
 
+
     if (m_VsyncRenderer->isRenderThreadSupported())
     {
+        logger->Log("Inside Vsync", LogLevel::INFO);
         m_RenderThread = SDL_CreateThread(Pacer::renderThread, "PacerRender", this);
-    }
-
+        
+    } 
+    logger->Log("render support" + std::to_string(m_VsyncRenderer->isRenderThreadSupported()), LogLevel::INFO);
     return true;
 }
 
@@ -367,38 +379,19 @@ void Pacer::signalVsync()
     m_VsyncSignalled.wakeOne();
 }
 
-// int Pacer::ourEnqueueThreadProc(void* frame_input)
-// {
-//     auto logger = Logger::GetInstance();
-//     auto testQueue = testQueue::GetInstance();
-//     logger->Log("Inside Enqueue thread from Pacer.cpp line 340", LogLevel::INFO);
-//     testQueue->enqueue(static_cast<AVFrame*>(frame_input));
-//     return 0;
-// }
-
-// int Pacer::ourDequeueThreadProc(void* context)
-// {
-//     auto logger = Logger::GetInstance();
-//     logger->Log("Inside Dequeue thread from Pacer.cpp line 349", LogLevel::INFO);
-//     auto testQueue = testQueue::GetInstance();
-//     testQueue->dequeue();
-//     return 0;
-// }
-
-/*
-AVFrame* Pacer::renderFrameDequeue(AVFrame* frame)
+int Pacer::renderFrameDequeueThreadProc(void *context)
 {
-   auto testQueue = testQueue::GetInstance();
-   //testQueue->IPolicyQueue(frame);
-   return frame;
+    Pacer *me = reinterpret_cast<Pacer *>(context);
+    me->renderFrameDequeueThread();
+    return 0;
 }
 
-*/
-void Pacer::renderFrame(AVFrame *frame)
+void Pacer::renderFrameDequeueThread()
 {
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
-    testQueue->IPolicyQueue(frame);
+    logger->Log("Render Frame function called", LogLevel::INFO);
+    while(true){
     if (testQueue->dequeueing())
     {
         AVFrame *framede = testQueue->IPolicy(5);
@@ -408,7 +401,9 @@ void Pacer::renderFrame(AVFrame *frame)
         m_VideoStats->totalPacerTime += beforeRender - framede->pkt_dts;
 
         // Render it
+
         m_VsyncRenderer->renderFrame(framede);
+        logger->Log("after render frame ", LogLevel::INFO);
         Uint32 afterRender = SDL_GetTicks();
 
         m_VideoStats->totalRenderTime += afterRender - beforeRender;
@@ -463,6 +458,18 @@ void Pacer::renderFrame(AVFrame *frame)
 
         m_FrameQueueLock.unlock();
     }
+    else
+    {
+        Sleep(10000);
+    }
+    }
+}
+
+void Pacer::renderFrame(AVFrame *frame)
+{
+    auto logger = Logger::GetInstance();
+    auto testQueue = testQueue::GetInstance();
+    testQueue->IPolicyQueue(frame);
 }
 
 void Pacer::dropFrameForEnqueue(QQueue<AVFrame *> &queue)
