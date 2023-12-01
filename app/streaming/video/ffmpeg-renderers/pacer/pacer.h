@@ -66,6 +66,7 @@ private:
     QWaitCondition m_VsyncSignalled;
     SDL_Thread* m_RenderThread;
     SDL_Thread* m_VsyncThread;
+    
     bool m_Stopping;
 
     IVsyncSource* m_VsyncSource;
@@ -74,4 +75,6 @@ private:
     int m_DisplayFps;
     PVIDEO_STATS m_VideoStats;
     int m_RendererAttributes;
+
+    SDL_Thread* m_DequeueThread;
 };
