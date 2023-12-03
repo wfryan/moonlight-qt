@@ -31,6 +31,8 @@
 // V-sync happens.
 #define TIMER_SLACK_MS 3
 
+bool threadMade = false;
+
 Pacer::Pacer(IFFmpegRenderer *renderer, PVIDEO_STATS videoStats) : m_RenderThread(nullptr),
                                                                    m_VsyncThread(nullptr),
                                                                    // our_enqueue_thread(nullptr),
@@ -151,10 +153,10 @@ int Pacer::renderThread(void *context)
 {
     Pacer *me = reinterpret_cast<Pacer *>(context);
 
-    auto logger = Logger::GetInstance();
-    logger->Log("Before making dequeue thread", LogLevel::INFO);
-    me->m_DequeueThread = SDL_CreateThread(Pacer::renderFrameDequeueThreadProc, "dequeue thread", me);
-    logger->Log("after making dequeue thread", LogLevel::INFO);
+    // auto logger = Logger::GetInstance();
+    // logger->Log("Before making dequeue thread", LogLevel::INFO);
+    // me->m_DequeueThread = SDL_CreateThread(Pacer::renderFrameDequeueThreadProc, "dequeue thread", me);
+    // logger->Log("after making dequeue thread", LogLevel::INFO);
 
     if (SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH) < 0)
     {
@@ -363,14 +365,21 @@ bool Pacer::initialize(SDL_Window *window, int maxVideoFps, bool enablePacing)
         m_VsyncThread = SDL_CreateThread(Pacer::vsyncThread, "PacerVsync", this);
     }
 
-
     if (m_VsyncRenderer->isRenderThreadSupported())
     {
         logger->Log("Inside Vsync", LogLevel::INFO);
         m_RenderThread = SDL_CreateThread(Pacer::renderThread, "PacerRender", this);
-        
-    } 
+    }
     logger->Log("render support" + std::to_string(m_VsyncRenderer->isRenderThreadSupported()), LogLevel::INFO);
+
+    if (!threadMade)
+    {
+        logger->Log("Before making dequeue thread", LogLevel::INFO);
+        m_DequeueThread = SDL_CreateThread(Pacer::renderFrameDequeueThreadProc, "dequeue thread", this);
+        logger->Log("after making dequeue thread", LogLevel::INFO);
+        threadMade = true;
+    }
+
     return true;
 }
 
@@ -391,78 +400,75 @@ void Pacer::renderFrameDequeueThread()
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
     logger->Log("Render Frame function called", LogLevel::INFO);
-    while(true){
-    if (testQueue->dequeueing())
+    while (true)
     {
-        //note: value of 20 currently has no effect, set by dequeuing variable
-        AVFrame *framede = testQueue->IPolicy(20);
-        testQueue->queueSize();
-        Uint32 beforeRender = SDL_GetTicks();
-        logger->Log("Time before render " + std::to_string(beforeRender) + " Frame pkt " + std::to_string(framede->pkt_dts), LogLevel::INFO);
-        m_VideoStats->totalPacerTime += beforeRender - framede->pkt_dts;
-
-        // Render it
-
-        m_VsyncRenderer->renderFrame(framede);
-        logger->Log("after render frame ", LogLevel::INFO);
-        Uint32 afterRender = SDL_GetTicks();
-
-        m_VideoStats->totalRenderTime += afterRender - beforeRender;
-        m_VideoStats->renderedFrames++;
-        av_frame_free(&framede);
-
-        // Drop frames if we have too many queued up for a while
-        m_FrameQueueLock.lock();
-
-        int frameDropTarget;
-
-        if (m_RendererAttributes & RENDERER_ATTRIBUTE_NO_BUFFERING)
+        if (testQueue->dequeueing())
         {
-            // Renderers that don't buffer any frames but don't support waitToRender() need us to buffer
-            // an extra frame to ensure they don't starve while waiting to present.
-            frameDropTarget = 1;
-        }
-        else
-        {
-            frameDropTarget = 0;
-            for (int queueHistoryEntry : m_RenderQueueHistory)
-            {
-                if (queueHistoryEntry == 0)
-                {
-                    // Be lenient as long as the queue length
-                    // resolves before the end of frame history
-                    frameDropTarget = 2;
-                    break;
-                }
-            }
+            // note: value of 20 currently has no effect, set by dequeuing variable
+            AVFrame *framede = testQueue->IPolicy(5);
+            testQueue->queueSize();
+            Uint32 beforeRender = SDL_GetTicks();
+            logger->Log("Time before render " + std::to_string(beforeRender) + " Frame pkt " + std::to_string(framede->pkt_dts), LogLevel::INFO);
+            m_VideoStats->totalPacerTime += beforeRender - framede->pkt_dts;
 
-            // Keep a rolling 500 ms window of render queue history
-            if (m_RenderQueueHistory.count() == m_MaxVideoFps / 2)
-            {
-                m_RenderQueueHistory.dequeue();
-            }
+            // Render it
 
-            m_RenderQueueHistory.enqueue(m_RenderQueue.count());
-        }
+            m_VsyncRenderer->renderFrame(framede);
+            logger->Log("after render frame ", LogLevel::INFO);
+            Uint32 afterRender = SDL_GetTicks();
 
-        // Catch up if we're several frames ahead
-        while (m_RenderQueue.count() > frameDropTarget)
-        {
-            AVFrame *framede = m_RenderQueue.dequeue();
-
-            // Drop the lock while we call av_frame_free()
-            m_FrameQueueLock.unlock();
-            m_VideoStats->pacerDroppedFrames++;
+            m_VideoStats->totalRenderTime += afterRender - beforeRender;
+            m_VideoStats->renderedFrames++;
             av_frame_free(&framede);
-            m_FrameQueueLock.lock();
-        }
 
-        m_FrameQueueLock.unlock();
-    }
-    else
-    {
-        Sleep(10000);
-    }
+            // Drop frames if we have too many queued up for a while
+            m_FrameQueueLock.lock();
+
+            int frameDropTarget;
+
+            if (m_RendererAttributes & RENDERER_ATTRIBUTE_NO_BUFFERING)
+            {
+                // Renderers that don't buffer any frames but don't support waitToRender() need us to buffer
+                // an extra frame to ensure they don't starve while waiting to present.
+                frameDropTarget = 1;
+            }
+            else
+            {
+                frameDropTarget = 0;
+                for (int queueHistoryEntry : m_RenderQueueHistory)
+                {
+                    if (queueHistoryEntry == 0)
+                    {
+                        // Be lenient as long as the queue length
+                        // resolves before the end of frame history
+                        frameDropTarget = 2;
+                        break;
+                    }
+                }
+
+                // Keep a rolling 500 ms window of render queue history
+                if (m_RenderQueueHistory.count() == m_MaxVideoFps / 2)
+                {
+                    m_RenderQueueHistory.dequeue();
+                }
+
+                m_RenderQueueHistory.enqueue(m_RenderQueue.count());
+            }
+
+            // Catch up if we're several frames ahead
+            while (m_RenderQueue.count() > frameDropTarget)
+            {
+                AVFrame *framede = m_RenderQueue.dequeue();
+
+                // Drop the lock while we call av_frame_free()
+                m_FrameQueueLock.unlock();
+                m_VideoStats->pacerDroppedFrames++;
+                av_frame_free(&framede);
+                m_FrameQueueLock.lock();
+            }
+
+            m_FrameQueueLock.unlock();
+        }
     }
 }
 

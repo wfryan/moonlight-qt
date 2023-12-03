@@ -66,7 +66,8 @@ void Logger::Log(std::string input, LogLevel messageLevel){
 		} else {
 			FileOutput((CurrentTime() + " - " + logType + input));
 		}
-        
+
+	
     }
 
     
