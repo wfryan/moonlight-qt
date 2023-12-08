@@ -5,7 +5,12 @@ using namespace std::chrono;
 using Clock = steady_clock;
 using std::this_thread::sleep_for;
 
-milliseconds start = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+int counter = 0;
+bool haveLatency = false;
+milliseconds renderFrameTime = milliseconds(0);
+
+milliseconds start = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+microseconds micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch());
 
 std::shared_ptr<testQueue> testQueue::queueInstance;
 std::queue<AVFrame *> myqueue;
@@ -13,9 +18,8 @@ std::mutex queue_mutex;
 milliseconds lastFrameTime = milliseconds::zero();
 // State 0 = queueing, State 1 = Dequeuing
 int queueState = 0;
-milliseconds currentLatency;
-milliseconds dequeue_latency;
-
+milliseconds currentLatency = milliseconds(0);
+milliseconds dequeue_latency = milliseconds(0);
 
 void testQueue::enqueue(AVFrame *frame)
 {
@@ -33,7 +37,6 @@ void testQueue::dequeue()
     {
         myqueue.pop();
         logger->Log("Dequeue Frame", LogLevel::INFO);
-        
     }
     else
     {
@@ -44,7 +47,6 @@ void testQueue::dequeue()
 void testQueue::queueSize()
 {
     auto logger = Logger::GetInstance();
-    
 }
 
 int testQueue::getQueueSize()
@@ -55,14 +57,15 @@ int testQueue::getQueueSize()
     return size;
 }
 
-bool testQueue::dequeueing(){
+bool testQueue::dequeueing()
+{
     auto logger = Logger::GetInstance();
     switch (queueState)
     {
     case 0:
-    //logger->Log("Case 0", LogLevel::INFO);
+        // logger->Log("Case 0", LogLevel::INFO);
 
-        //note: this actually sets the size of the queue
+        // note: this actually sets the size of the queue
         if (getQueueSize() == 5)
         {
             queueState = 1;
@@ -71,11 +74,12 @@ bool testQueue::dequeueing(){
         return false;
         break;
     case 1:
-        //logger->Log("Case 1", LogLevel::INFO);
-        if(getQueueSize() == 0){
+        // logger->Log("Case 1", LogLevel::INFO);
+        if (getQueueSize() == 0)
+        {
             return false;
         }
-        
+
         return true;
         break;
     }
@@ -91,54 +95,53 @@ std::shared_ptr<testQueue> testQueue::GetInstance()
     return queueInstance;
 }
 
-AVFrame* testQueue::IPolicy(long unsigned int minqueue)
+AVFrame *testQueue::IPolicy()
 {
-    milliseconds start = getFrameTime();
+    // milliseconds start = getFrameTime();
     auto logger = Logger::GetInstance();
-    milliseconds fpms = milliseconds(17);
+    // milliseconds fpms = milliseconds(17);
+    AVFrame *currentf;
     switch (queueState)
     {
     case 0:
-        if (myqueue.size() >= minqueue)
-        {
-            queue_mutex.lock();
-            //queue_Pacer->renderFrameDequeue(myqueue.front());
-            AVFrame* currentf = myqueue.front();
-            myqueue.pop();
-            queue_mutex.unlock();
-            logger->Log("Dequeue Frame", LogLevel::INFO);
-            logger->Log(std::to_string(myqueue.size()), LogLevel::GRAPHING);
-            
-            queueState = 1;
-            milliseconds end = getFrameTime();
-            milliseconds run_time = (end - start);
-            logger->Log("Run TIme " + std::to_string(run_time.count()) + " fpms "+std::to_string(fpms.count())+ " end "+std::to_string(end.count())+ " start "+std::to_string(start.count()), LogLevel::INFO);
-            if (run_time < fpms)
-            {
-                logger->Log("Sleep ", LogLevel::INFO);
-                sleep_for(fpms-run_time);
-            }
-            return currentf;
-        }
-        return nullptr;
+
+        queue_mutex.lock();
+        // queue_Pacer->renderFrameDequeue(myqueue.front());
+       currentf = myqueue.front();
+        myqueue.pop();
+        queue_mutex.unlock();
+        logger->Log("Dequeue Frame", LogLevel::INFO);
+        logger->Log(std::to_string(myqueue.size()), LogLevel::GRAPHING);
+
+        queueState = 1;
+        // milliseconds end = getFrameTime();
+        // milliseconds run_time = (end - start);
+        //  logger->Log("Run TIme " + std::to_string(run_time.count()) + " fpms "+std::to_string(fpms.count())+ " end "+std::to_string(end.count())+ " start "+std::to_string(start.count()), LogLevel::INFO);
+        //  if (run_time < fpms)
+        //  {
+        //      logger->Log("Sleep ", LogLevel::INFO);
+        //      sleep_for(fpms-run_time);
+        //  }
+        return currentf;
+
         break;
     case 1:
         queue_mutex.lock();
-        //queue_Pacer->renderFrameDequeue(myqueue.front());
-        AVFrame* currentf = myqueue.front();
+        // queue_Pacer->renderFrameDequeue(myqueue.front());
+        currentf = myqueue.front();
         myqueue.pop();
         queue_mutex.unlock();
         logger->Log("Dequeue Frame", LogLevel::INFO);
         logger->Log("Queue Size after dequeue: " + std::to_string(getQueueSize()), LogLevel::INFO);
-        milliseconds end = getFrameTime();
-        milliseconds run_time = (end - start);
-        logger->Log("Run TIme " + std::to_string(run_time.count()) + " fpms "+std::to_string(fpms.count())+ " end "+std::to_string(end.count())+ " start "+std::to_string(start.count()), LogLevel::INFO);
-        logger->Log("fpms - run_time: " + std::to_string((fpms-run_time).count()), LogLevel::INFO);    
-        if (run_time < fpms)
-        {
-            logger->Log("Sleep ", LogLevel::INFO);
-            sleep_for(fpms-run_time);
-        }
+        // milliseconds end = getFrameTime();
+        // milliseconds run_time = (end - start);
+        // logger->Log("Run TIme " + std::to_string(run_time.count()) + " fpms "+std::to_string(fpms.count())+ " end "+std::to_string(end.count())+ " start "+std::to_string(start.count()), LogLevel::INFO);
+        // logger->Log("fpms - run_time: " + std::to_string((fpms-run_time).count()), LogLevel::INFO);
+        // if (run_time < fpms)
+        // {
+        //     logger->Log("Sleep ", LogLevel::INFO);
+        //     sleep_for(fpms-run_time);
+        // }
         return currentf;
         break;
     }
@@ -148,20 +151,37 @@ void testQueue::IPolicyQueue(AVFrame *frame)
 {
     auto logger = Logger::GetInstance();
     milliseconds timeArrived = getFrameTime();
+
     milliseconds latency = timeArrived - lastFrameTime;
-    currentLatency = latency;
-    logger->Log(("The last frame time is " + std::to_string(lastFrameTime.count()) + " Latency is " + std::to_string(latency.count())), LogLevel::INFO);
-    if (latency > currentLatency * 2)
+
+    if (counter >= 5)
     {
-        av_frame_free(&frame);
+
+        currentLatency = renderFrameTime / counter;
+        counter = 0;
+        haveLatency = true;
+    }
+
+    logger->Log(("The last frame time is " + std::to_string(lastFrameTime.count()) + " Latency is " + std::to_string(latency.count())), LogLevel::INFO);
+    if (latency > currentLatency * 2 && frame->key_frame == 0 && haveLatency)
+    {
+        logger->Log("Counter:" + std::to_string(counter), LogLevel::INFO);
+        logger->Log("current latency:" + std::to_string(currentLatency.count()), LogLevel::INFO);
+        logger->Log("latency:" + std::to_string(latency.count()), LogLevel::INFO);
         logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
+        av_frame_free(&frame);
+        //logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
         lastFrameTime = timeArrived;
+        counter++;
+        renderFrameTime += latency;
     }
     else
     {
-        
+
         queue_mutex.lock();
         myqueue.push(frame);
+        counter++;
+        renderFrameTime += latency;
         queue_mutex.unlock();
         lastFrameTime = timeArrived;
         logger->Log(("Queueing Frame" + std::to_string(frame->pts)), LogLevel::INFO);
@@ -174,6 +194,14 @@ milliseconds testQueue::getFrameTime()
 {
     using namespace std::chrono;
     milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-    milliseconds timems = ms - start; 
+    milliseconds timems = ms - start;
+    return timems;
+}
+
+microseconds testQueue::getFrameTimeMicrosecond()
+{
+    using namespace std::chrono;
+    microseconds ms = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+    microseconds timems = ms - micro_start;
     return timems;
 }

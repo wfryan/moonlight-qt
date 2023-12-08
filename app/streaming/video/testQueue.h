@@ -30,8 +30,10 @@ class testQueue{
         std::mutex queue_mutex;
         void IPolicyQueue(AVFrame* frame);
         milliseconds getFrameTime();
-        AVFrame* IPolicy(long unsigned int minqueue);
+        AVFrame* IPolicy();
         bool dequeueing();
+        milliseconds currentLatency;
+        microseconds getFrameTimeMicrosecond();
         //void run();
 
 

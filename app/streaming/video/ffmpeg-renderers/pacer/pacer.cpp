@@ -4,6 +4,8 @@
 #include "streaming/video/testQueue.h"
 #include "streaming/video/logger.h"
 
+using std::this_thread::sleep_for;
+
 #ifdef Q_OS_WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -404,8 +406,10 @@ void Pacer::renderFrameDequeueThread()
     {
         if (testQueue->dequeueing())
         {
+            microseconds start = testQueue->getFrameTimeMicrosecond();
+            microseconds fpms = microseconds(15000);
             // note: value of 20 currently has no effect, set by dequeuing variable
-            AVFrame *framede = testQueue->IPolicy(5);
+            AVFrame *framede = testQueue->IPolicy();
             testQueue->queueSize();
             Uint32 beforeRender = SDL_GetTicks();
             logger->Log("Time before render " + std::to_string(beforeRender) + " Frame pkt " + std::to_string(framede->pkt_dts), LogLevel::INFO);
@@ -468,8 +472,21 @@ void Pacer::renderFrameDequeueThread()
             }
 
             m_FrameQueueLock.unlock();
+
+            microseconds end = testQueue->getFrameTimeMicrosecond();
+            microseconds run_time = (end - start);
+            
+            if (run_time < fpms)
+            {
+                logger->Log("run_time:" + std::to_string(run_time.count()), LogLevel::INFO);
+                logger->Log("sleep for:" + std::to_string((fpms-run_time).count()), LogLevel::INFO);
+                logger->Log("Sleep ", LogLevel::INFO);
+                sleep_for(fpms-run_time);
+            }
         }
+        
     }
+
 }
 
 void Pacer::renderFrame(AVFrame *frame)
