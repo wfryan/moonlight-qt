@@ -8,6 +8,7 @@ using std::this_thread::sleep_for;
 int counter = 0;
 bool haveLatency = false;
 milliseconds renderFrameTime = milliseconds(0);
+microseconds renderFrameTimeMicro = microseconds(0);
 
 milliseconds start = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 microseconds micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch());
@@ -16,9 +17,11 @@ std::shared_ptr<testQueue> testQueue::queueInstance;
 std::queue<AVFrame *> myqueue;
 std::mutex queue_mutex;
 milliseconds lastFrameTime = milliseconds::zero();
+microseconds lastFrameTimeMicro = microseconds::zero();
 // State 0 = queueing, State 1 = Dequeuing
 int queueState = 0;
 milliseconds currentLatency = milliseconds(0);
+microseconds currentLatencyMicro = microseconds(0);
 milliseconds dequeue_latency = milliseconds(0);
 
 void testQueue::enqueue(AVFrame *frame)
@@ -151,19 +154,20 @@ void testQueue::IPolicyQueue(AVFrame *frame)
 {
     auto logger = Logger::GetInstance();
     milliseconds timeArrived = getFrameTime();
+    microseconds timeArrivedMicro = getFrameTimeMicrosecond();
 
     milliseconds latency = timeArrived - lastFrameTime;
+    microseconds latencyMicro = timeArrivedMicro - lastFrameTimeMicro;
 
-    if (counter >= 5)
+    if (counter >= 4)
     {
-
         currentLatency = renderFrameTime / counter;
-        counter = 0;
+        currentLatencyMicro = renderFrameTimeMicro / counter;
         haveLatency = true;
     }
 
     logger->Log(("The last frame time is " + std::to_string(lastFrameTime.count()) + " Latency is " + std::to_string(latency.count())), LogLevel::INFO);
-    if (latency > currentLatency * 2 && frame->key_frame == 0 && haveLatency)
+    if (latency > currentLatency && frame->key_frame == 0 && haveLatency)
     {
         logger->Log("Counter:" + std::to_string(counter), LogLevel::INFO);
         logger->Log("current latency:" + std::to_string(currentLatency.count()), LogLevel::INFO);
@@ -172,8 +176,10 @@ void testQueue::IPolicyQueue(AVFrame *frame)
         av_frame_free(&frame);
         //logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
         lastFrameTime = timeArrived;
+        lastFrameTimeMicro = timeArrivedMicro
         counter++;
         renderFrameTime += latency;
+        renderFrameTimeMicro += latencyMicro
     }
     else
     {
@@ -182,8 +188,10 @@ void testQueue::IPolicyQueue(AVFrame *frame)
         myqueue.push(frame);
         counter++;
         renderFrameTime += latency;
+        renderFrameTimeMicro += latencyMicro
         queue_mutex.unlock();
         lastFrameTime = timeArrived;
+        lastFrameTimeMicro = timeArrivedMicro
         logger->Log(("Queueing Frame" + std::to_string(frame->pts)), LogLevel::INFO);
         logger->Log("Queue Size after queueing: " + std::to_string(getQueueSize()), LogLevel::INFO);
         logger->Log(std::to_string(myqueue.size()), LogLevel::GRAPHING);
