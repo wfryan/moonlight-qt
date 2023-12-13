@@ -33,4 +33,6 @@ class Logger{
         void FileOutput(const std::string& message);
         std::string CurrentTime();
         std::string millisecondsToTimeFormat(int64_t milliseconds);
+
+        std::string queueGraph();
 };

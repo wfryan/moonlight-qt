@@ -69,7 +69,7 @@ bool testQueue::dequeueing()
         // logger->Log("Case 0", LogLevel::INFO);
 
         // note: this actually sets the size of the queue
-        if (getQueueSize() == 5)
+        if (getQueueSize() == 10)
         {
             queueState = 1;
             return true;
@@ -176,10 +176,14 @@ void testQueue::IPolicyQueue(AVFrame *frame)
         av_frame_free(&frame);
         //logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
         lastFrameTime = timeArrived;
-        lastFrameTimeMicro = timeArrivedMicro
+        lastFrameTimeMicro = timeArrivedMicro;
         counter++;
-        renderFrameTime += latency;
-        renderFrameTimeMicro += latencyMicro
+        if(counter > 1){
+            renderFrameTime += latency;
+            renderFrameTimeMicro += latencyMicro;
+        }
+
+        
     }
     else
     {
@@ -187,11 +191,14 @@ void testQueue::IPolicyQueue(AVFrame *frame)
         queue_mutex.lock();
         myqueue.push(frame);
         counter++;
-        renderFrameTime += latency;
-        renderFrameTimeMicro += latencyMicro
+        if(counter > 1){
+            renderFrameTime += latency;
+            renderFrameTimeMicro += latencyMicro;
+        }
+        
         queue_mutex.unlock();
         lastFrameTime = timeArrived;
-        lastFrameTimeMicro = timeArrivedMicro
+        lastFrameTimeMicro = timeArrivedMicro;
         logger->Log(("Queueing Frame" + std::to_string(frame->pts)), LogLevel::INFO);
         logger->Log("Queue Size after queueing: " + std::to_string(getQueueSize()), LogLevel::INFO);
         logger->Log(std::to_string(myqueue.size()), LogLevel::GRAPHING);

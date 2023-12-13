@@ -34,6 +34,7 @@ class testQueue{
         bool dequeueing();
         milliseconds currentLatency;
         microseconds getFrameTimeMicrosecond();
+        microseconds currentLatencyMicro;
         //void run();
 
 

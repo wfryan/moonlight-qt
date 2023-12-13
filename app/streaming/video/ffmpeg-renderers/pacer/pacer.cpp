@@ -407,7 +407,7 @@ void Pacer::renderFrameDequeueThread()
         if (testQueue->dequeueing())
         {
             microseconds start = testQueue->getFrameTimeMicrosecond();
-            microseconds fpms = testQueue.currentLatencyMicro;
+            microseconds fpms = testQueue->currentLatencyMicro;
             // note: value of 20 currently has no effect, set by dequeuing variable
             AVFrame *framede = testQueue->IPolicy();
             testQueue->queueSize();
