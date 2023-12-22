@@ -286,7 +286,8 @@ int main(int argc, char *argv[])
 {
 
     auto logger = Logger::GetInstance();
-    logger->SetPrefs("D:/log-file-output", LogLevel::INFO);
+    std::vector<std::string> columnVector{"queueSize", "latency"};
+    logger->SetPrefs("D:/log-file-output", LogLevel::GRAPHING, columnVector);
     logger->Log("Begin Log:", LogLevel::INFO);
 
 
