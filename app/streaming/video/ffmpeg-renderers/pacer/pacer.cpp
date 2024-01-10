@@ -33,7 +33,7 @@ using std::this_thread::sleep_for;
 // V-sync happens.
 #define TIMER_SLACK_MS 3
 
-bool threadMade = false;
+bool queueThreadMade = false;
 
 Pacer::Pacer(IFFmpegRenderer *renderer, PVIDEO_STATS videoStats) : m_RenderThread(nullptr),
                                                                    m_VsyncThread(nullptr),
@@ -372,14 +372,14 @@ bool Pacer::initialize(SDL_Window *window, int maxVideoFps, bool enablePacing)
         logger->Log("Inside Vsync", LogLevel::INFO);
         m_RenderThread = SDL_CreateThread(Pacer::renderThread, "PacerRender", this);
     }
-    logger->Log("render support" + std::to_string(m_VsyncRenderer->isRenderThreadSupported()), LogLevel::INFO);
 
-    if (!threadMade)
+    //creation of queue Thread
+    if (!queueThreadMade)
     {
         logger->Log("Before making dequeue thread", LogLevel::INFO);
         m_DequeueThread = SDL_CreateThread(Pacer::renderFrameDequeueThreadProc, "dequeue thread", this);
         logger->Log("after making dequeue thread", LogLevel::INFO);
-        threadMade = true;
+        queueThreadMade = true;
     }
 
     return true;
@@ -390,6 +390,7 @@ void Pacer::signalVsync()
     m_VsyncSignalled.wakeOne();
 }
 
+//ThreadProc function
 int Pacer::renderFrameDequeueThreadProc(void *context)
 {
     Pacer *me = reinterpret_cast<Pacer *>(context);
@@ -397,6 +398,7 @@ int Pacer::renderFrameDequeueThreadProc(void *context)
     return 0;
 }
 
+//Dequeue Function
 void Pacer::renderFrameDequeueThread()
 {
     auto logger = Logger::GetInstance();
@@ -404,12 +406,13 @@ void Pacer::renderFrameDequeueThread()
     logger->Log("Render Frame function called", LogLevel::INFO);
     while (true)
     {
+        //if testQueue is in the dequeueing phase
         if (testQueue->dequeueing())
         {
             microseconds start = testQueue->getFrameTimeMicrosecond();
             microseconds fpms = testQueue->currentLatencyMicro;
             // note: value of 20 currently has no effect, set by dequeuing variable
-            AVFrame *framede = testQueue->IPolicy();
+            AVFrame *framede = testQueue->dequeue();
             testQueue->queueSize();
             Uint32 beforeRender = SDL_GetTicks();
             logger->Log("Time before render " + std::to_string(beforeRender) + " Frame pkt " + std::to_string(framede->pkt_dts), LogLevel::INFO);
@@ -476,12 +479,19 @@ void Pacer::renderFrameDequeueThread()
             microseconds end = testQueue->getFrameTimeMicrosecond();
             microseconds run_time = (end - start);
             
+
+
             if (run_time < fpms)
             {
                 logger->Log("run_time:" + std::to_string(run_time.count()), LogLevel::INFO);
+                logger->Log("fpms:" + std::to_string(fpms.count()), LogLevel::INFO);
                 logger->Log("sleep for:" + std::to_string((fpms-run_time).count()), LogLevel::INFO);
                 logger->Log("Sleep ", LogLevel::INFO);
-                sleep_for(fpms-run_time);
+                sleep_for(microseconds(16670) - run_time);
+                //frame display for 16.67 ms
+                //16.67 - run_time
+            } else {
+                logger->Log("sleep not necessary", LogLevel::INFO);
             }
         }
         

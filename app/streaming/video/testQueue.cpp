@@ -33,20 +33,6 @@ void testQueue::enqueue(AVFrame *frame)
     queue_mutex.unlock();
 }
 
-void testQueue::dequeue()
-{
-    auto logger = Logger::GetInstance();
-    if (myqueue.size() >= 30)
-    {
-        myqueue.pop();
-        logger->Log("Dequeue Frame", LogLevel::INFO);
-    }
-    else
-    {
-        return;
-    }
-}
-
 void testQueue::queueSize()
 {
     auto logger = Logger::GetInstance();
@@ -66,10 +52,8 @@ bool testQueue::dequeueing()
     switch (queueState)
     {
     case 0:
-        // logger->Log("Case 0", LogLevel::INFO);
-
         // note: this actually sets the size of the queue
-        if (getQueueSize() == 10)
+        if (getQueueSize() == 5)
         {
             queueState = 1;
             return true;
@@ -98,56 +82,23 @@ std::shared_ptr<testQueue> testQueue::GetInstance()
     return queueInstance;
 }
 
-AVFrame *testQueue::IPolicy()
+AVFrame *testQueue::dequeue()
 {
-    // milliseconds start = getFrameTime();
     auto logger = Logger::GetInstance();
-    // milliseconds fpms = milliseconds(17);
     AVFrame *currentf;
-    switch (queueState)
-    {
-    case 0:
 
-        queue_mutex.lock();
-        // queue_Pacer->renderFrameDequeue(myqueue.front());
-       currentf = myqueue.front();
-        myqueue.pop();
-        queue_mutex.unlock();
-        logger->Log("Dequeue Frame", LogLevel::INFO);
-        logger->LogGraph(std::to_string(myqueue.size()), "queueSize");
+    queue_mutex.lock();
+    currentf = myqueue.front();
+    myqueue.pop();
+    logger->LogGraph(std::to_string(myqueue.size()), "queueSize");
+    queue_mutex.unlock();
 
-        queueState = 1;
-        // milliseconds end = getFrameTime();
-        // milliseconds run_time = (end - start);
-        //  logger->Log("Run TIme " + std::to_string(run_time.count()) + " fpms "+std::to_string(fpms.count())+ " end "+std::to_string(end.count())+ " start "+std::to_string(start.count()), LogLevel::INFO);
-        //  if (run_time < fpms)
-        //  {
-        //      logger->Log("Sleep ", LogLevel::INFO);
-        //      sleep_for(fpms-run_time);
-        //  }
-        return currentf;
+    logger->Log("Dequeue Frame", LogLevel::INFO);
+    logger->Log("Queue Size after dequeueing: " + std::to_string(getQueueSize()), LogLevel::INFO);
 
-        break;
-    case 1:
-        queue_mutex.lock();
-        // queue_Pacer->renderFrameDequeue(myqueue.front());
-        currentf = myqueue.front();
-        myqueue.pop();
-        queue_mutex.unlock();
-        logger->Log("Dequeue Frame", LogLevel::INFO);
-        logger->Log("Queue Size after dequeue: " + std::to_string(getQueueSize()), LogLevel::INFO);
-        // milliseconds end = getFrameTime();
-        // milliseconds run_time = (end - start);
-        // logger->Log("Run TIme " + std::to_string(run_time.count()) + " fpms "+std::to_string(fpms.count())+ " end "+std::to_string(end.count())+ " start "+std::to_string(start.count()), LogLevel::INFO);
-        // logger->Log("fpms - run_time: " + std::to_string((fpms-run_time).count()), LogLevel::INFO);
-        // if (run_time < fpms)
-        // {
-        //     logger->Log("Sleep ", LogLevel::INFO);
-        //     sleep_for(fpms-run_time);
-        // }
-        return currentf;
-        break;
-    }
+
+
+    return currentf;
 }
 
 void testQueue::IPolicyQueue(AVFrame *frame)
@@ -167,12 +118,15 @@ void testQueue::IPolicyQueue(AVFrame *frame)
     }
 
     logger->Log(("The last frame time is " + std::to_string(lastFrameTime.count()) + " Latency is " + std::to_string(latency.count())), LogLevel::INFO);
-    if (latency > currentLatency && frame->key_frame == 0 && haveLatency)
+
+    logger->Log("current latency:" + std::to_string(currentLatency.count()), LogLevel::INFO);
+    logger->Log("latency:" + std::to_string(latency.count()), LogLevel::INFO);
+    if (latencyMicro > (microseconds(15000) + currentLatencyMicro) && frame->key_frame == 0 && queueState == 1)
     {
-        logger->Log("Counter:" + std::to_string(counter), LogLevel::INFO);
-        logger->Log("current latency:" + std::to_string(currentLatency.count()), LogLevel::INFO);
-        logger->Log("latency:" + std::to_string(latency.count()), LogLevel::INFO);
-        logger->LogGraph(std::to_string(latency.count()), "latency");
+//        logger->Log("Counter:" + std::to_string(counter), LogLevel::INFO);
+//        logger->Log("current latency:" + std::to_string(currentLatency.count()), LogLevel::INFO);
+//        logger->Log("latency:" + std::to_string(latency.count()), LogLevel::INFO);
+//        logger->LogGraph(std::to_string(latency.count()), "latency");
         logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
         av_frame_free(&frame);
         //logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
@@ -196,13 +150,17 @@ void testQueue::IPolicyQueue(AVFrame *frame)
             renderFrameTime += latency;
             renderFrameTimeMicro += latencyMicro;
         }
-        
-        queue_mutex.unlock();
+
         lastFrameTime = timeArrived;
         lastFrameTimeMicro = timeArrivedMicro;
+
+        logger->LogGraph(std::to_string(myqueue.size()), "queueSize");
+        
+        queue_mutex.unlock();
+
         logger->Log(("Queueing Frame" + std::to_string(frame->pts)), LogLevel::INFO);
         logger->Log("Queue Size after queueing: " + std::to_string(getQueueSize()), LogLevel::INFO);
-        logger->LogGraph(std::to_string(myqueue.size()), "queueSize");
+
     }
 }
 
