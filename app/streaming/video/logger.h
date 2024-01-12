@@ -25,6 +25,10 @@ class Logger{
         void LogGraph(std::string input, std::string column);
         static std::shared_ptr<Logger> GetInstance(); //pointer of logger instance
 
+        //temp Counter variables
+        int tempCounterFramesIn = 0;
+        int tempCounterFramesOut = 0;
+
 
     private:
         LogLevel logLevel;

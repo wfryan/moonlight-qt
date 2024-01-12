@@ -6,6 +6,8 @@ std::shared_ptr<Logger> Logger::loggerInstance;
 //sets up ordinary log file
 void Logger::SetPrefs(std::string logFileName, LogLevel level, std::vector<std::string> input_columns){
 
+	
+
     logLevel = level;
 
 	using namespace std::chrono;
@@ -31,7 +33,18 @@ void Logger::SetPrefs(std::string logFileName, LogLevel level, std::vector<std::
 	if (!logFile.good()) {
 		std::cerr << "Can't Open Log File at " << input << std::endl;
 	} else {
-		std::cout << "Log File Loaded successfully!" << std::endl;
+        std::cout << "Log File Loaded successfully!" << std::endl;
+		if(logLevel == LogLevel::GRAPHING){
+            std::string columnNames = "time (ms)";
+			for(int i = 0; i < input_columns.size(); i++){
+				columnNames += ",";
+				columnNames += input_columns[i];
+			}
+			columnNames += "\n";
+			FileOutput(columnNames);
+		}
+		
+		
 
 
 	}
@@ -123,3 +136,4 @@ std::string Logger::millisecondsToTimeFormat(int64_t milliseconds) {
 
     return ss.str();
 }
+

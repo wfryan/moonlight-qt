@@ -37,8 +37,6 @@ bool queueThreadMade = false;
 
 Pacer::Pacer(IFFmpegRenderer *renderer, PVIDEO_STATS videoStats) : m_RenderThread(nullptr),
                                                                    m_VsyncThread(nullptr),
-                                                                   // our_enqueue_thread(nullptr),
-                                                                   // our_dequeue_thread(nullptr),
                                                                    m_Stopping(false),
                                                                    m_VsyncSource(nullptr),
                                                                    m_VsyncRenderer(renderer),
@@ -359,9 +357,6 @@ bool Pacer::initialize(SDL_Window *window, int maxVideoFps, bool enablePacing)
                     m_DisplayFps, m_MaxVideoFps);
     }
 
-    auto logger = Logger::GetInstance();
-    logger->Log("Outside Vsync", LogLevel::INFO);
-
     if (m_VsyncSource != nullptr)
     {
         m_VsyncThread = SDL_CreateThread(Pacer::vsyncThread, "PacerVsync", this);
@@ -369,16 +364,15 @@ bool Pacer::initialize(SDL_Window *window, int maxVideoFps, bool enablePacing)
 
     if (m_VsyncRenderer->isRenderThreadSupported())
     {
-        logger->Log("Inside Vsync", LogLevel::INFO);
         m_RenderThread = SDL_CreateThread(Pacer::renderThread, "PacerRender", this);
     }
 
     //creation of queue Thread
     if (!queueThreadMade)
     {
-        logger->Log("Before making dequeue thread", LogLevel::INFO);
+
         m_DequeueThread = SDL_CreateThread(Pacer::renderFrameDequeueThreadProc, "dequeue thread", this);
-        logger->Log("after making dequeue thread", LogLevel::INFO);
+
         queueThreadMade = true;
     }
 
@@ -487,6 +481,9 @@ void Pacer::renderFrameDequeueThread()
                 logger->Log("fpms:" + std::to_string(fpms.count()), LogLevel::INFO);
                 logger->Log("sleep for:" + std::to_string((fpms-run_time).count()), LogLevel::INFO);
                 logger->Log("Sleep ", LogLevel::INFO);
+
+                logger->tempCounterFramesOut++;
+                logger->LogGraph(std::to_string(logger->tempCounterFramesOut), "framesOut");
                 sleep_for(microseconds(16670) - run_time);
                 //frame display for 16.67 ms
                 //16.67 - run_time
