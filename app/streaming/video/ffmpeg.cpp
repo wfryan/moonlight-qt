@@ -557,11 +557,6 @@ bool FFmpegVideoDecoder::completeInitialization(const AVCodec* decoder, enum AVP
         }
     }
 
-    // auto logger = Logger::GetInstance();
-    // logger->Log("Before making dequeue thread", LogLevel::INFO);
-    // m_DequeueThread = SDL_CreateThread(Pacer::renderFrameDequeueThreadProc, "dequeue thread", (void*) this);
-    // logger->Log("after making dequeue thread", LogLevel::INFO);
-
     return true;
 }
 
@@ -1392,6 +1387,10 @@ void FFmpegVideoDecoder::decoderThreadProc()
                     printf("Frame rendered\n");
 
                     // Queue the frame for rendering (or render now if pacer is disabled)
+
+                    logger->Log("using submitFrame to render", LogLevel::INFO);
+                    logger->tempCounterFramesIn++;
+                    logger->LogGraph(std::to_string(logger->tempCounterFramesIn), "framesIn");
                     m_Pacer->submitFrame(frame);
                 }
                 else if (err == AVERROR(EAGAIN)) {
@@ -1569,6 +1568,9 @@ int FFmpegVideoDecoder::submitDecodeUnit(PDECODE_UNIT du)
 
 void FFmpegVideoDecoder::renderFrameOnMainThread()
 {
+    
+    auto logger = Logger::GetInstance();
+    logger->Log("using renderOnMainThread to render", LogLevel::INFO);
     m_Pacer->renderOnMainThread();
 }
 

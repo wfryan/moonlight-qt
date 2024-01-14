@@ -1,28 +1,56 @@
 #include "logger.h"
 
+//shared pointer instance of logger
 std::shared_ptr<Logger> Logger::loggerInstance;
 
-void Logger::SetPrefs(std::string logFileName, LogLevel level){
+//sets up ordinary log file
+void Logger::SetPrefs(std::string logFileName, LogLevel level, std::vector<std::string> input_columns){
+
+	
 
     logLevel = level;
 
 	using namespace std::chrono;
 
+	//assigns columns for graphing setup 
+	columns = input_columns;
+	
+
 	milliseconds ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
 
 	startTime = ms.count();
 
-    std::string input = logFileName + "/" + "output" + ".txt";
+    std::string input = logFileName + "/" + std::to_string(startTime);
+
+	if(logLevel == LogLevel::GRAPHING){
+		input+=".csv";
+	} else{
+		input+=".txt";
+	}
     
 
     logFile.open(input);
-		if (!logFile.good()) {
-			std::cerr << "Can't Open Log File at " << input << std::endl;
-		} else {
-			std::cout << "Log File Loaded successfully!" << std::endl;
+	if (!logFile.good()) {
+		std::cerr << "Can't Open Log File at " << input << std::endl;
+	} else {
+        std::cout << "Log File Loaded successfully!" << std::endl;
+		if(logLevel == LogLevel::GRAPHING){
+            std::string columnNames = "time (ms)";
+			for(int i = 0; i < input_columns.size(); i++){
+				columnNames += ",";
+				columnNames += input_columns[i];
+			}
+			columnNames += "\n";
+			FileOutput(columnNames);
 		}
+		
+		
+
+
+	}
 }
 
+//necessary function to get singleton instance
 std::shared_ptr<Logger> Logger::GetInstance(){
     if(loggerInstance == nullptr){
         loggerInstance = std::shared_ptr<Logger>(new Logger());
@@ -31,6 +59,7 @@ std::shared_ptr<Logger> Logger::GetInstance(){
     return loggerInstance;
 }
 
+//function that creates a proper log output line
 void Logger::Log(std::string input, LogLevel messageLevel){
 
     if(messageLevel <= logLevel){
@@ -57,25 +86,32 @@ void Logger::Log(std::string input, LogLevel messageLevel){
 			break;
 		}
 
-
-		if(messageLevel == LogLevel::GRAPHING){
-			using namespace std::chrono;
-			milliseconds ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
-			std::string output = std::to_string(ms.count() - startTime);
-			FileOutput(output + " " + input);
-		} else {
-			FileOutput((CurrentTime() + " - " + logType + input));
-		}
-        
+		FileOutput((CurrentTime() + " - " + logType + input));
     }
-
-    
 }
 
+//sets up graphing inputs
+void Logger::LogGraph(std::string input, std::string column){
+	using namespace std::chrono;
+	milliseconds ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+	std::string output = std::to_string(ms.count() - startTime);
+
+	for(int i = 0; i < columns.size(); i++){
+		output += ",";
+		if(columns[i] == column){
+			output+=input;
+		}
+	}
+
+	FileOutput(output);
+}
+
+//enters proper log message into file
 void Logger::FileOutput(const std::string& message){
     logFile << message << std::endl;
 }
 
+//calculates current time in ms
 std::string Logger::CurrentTime(){
 	using namespace std::chrono;
 
@@ -86,6 +122,7 @@ std::string Logger::CurrentTime(){
 
 }
 
+//converts milliseconds into minutes, seconds, milliseconds
 std::string Logger::millisecondsToTimeFormat(int64_t milliseconds) {
     // int hours = milliseconds / 3600000;
     int minutes = (milliseconds % 3600000) / 60000;
@@ -99,3 +136,4 @@ std::string Logger::millisecondsToTimeFormat(int64_t milliseconds) {
 
     return ss.str();
 }
+

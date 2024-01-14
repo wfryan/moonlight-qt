@@ -23,15 +23,17 @@ class testQueue{
         //void SetPrefs(std::string logFileName, LogLevel level);
         //void Log(std::string input, LogLevel level);
         void enqueue(AVFrame* frame);
-        void dequeue();
         void queueSize();
         int getQueueSize();
         static std::shared_ptr<testQueue> GetInstance(); //pointer of logger instance
         std::mutex queue_mutex;
         void IPolicyQueue(AVFrame* frame);
         milliseconds getFrameTime();
-        AVFrame* IPolicy(long unsigned int minqueue);
+        AVFrame* dequeue();
         bool dequeueing();
+        milliseconds currentLatency;
+        microseconds getFrameTimeMicrosecond();
+        microseconds currentLatencyMicro;
         //void run();
 
 
