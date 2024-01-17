@@ -28,12 +28,14 @@ class testQueue{
         static std::shared_ptr<testQueue> GetInstance(); //pointer of logger instance
         std::mutex queue_mutex;
         void IPolicyQueue(AVFrame* frame);
+        void EPolicyQueue(AVFrame *frame);
         milliseconds getFrameTime();
         AVFrame* dequeue();
         bool dequeueing();
         milliseconds currentLatency;
         microseconds getFrameTimeMicrosecond();
         microseconds currentLatencyMicro;
+        microseconds avg;
         //void run();
 
 

@@ -473,18 +473,22 @@ void Pacer::renderFrameDequeueThread()
             microseconds end = testQueue->getFrameTimeMicrosecond();
             microseconds run_time = (end - start);
             
+            microseconds average_slp = testQueue->avg;
 
+            //logger->Log("logging sleep time" + std::to_string(average_slp.count()), LogLevel::INFO);
 
-            if (run_time < fpms)
+            if (run_time < average_slp)
             {
-                logger->Log("run_time:" + std::to_string(run_time.count()), LogLevel::INFO);
-                logger->Log("fpms:" + std::to_string(fpms.count()), LogLevel::INFO);
-                logger->Log("sleep for:" + std::to_string((fpms-run_time).count()), LogLevel::INFO);
-                logger->Log("Sleep ", LogLevel::INFO);
+                // logger->Log("run_time:" + std::to_string(run_time.count()), LogLevel::INFO);
+                // logger->Log("fpms:" + std::to_string(fpms.count()), LogLevel::INFO);
+                // logger->Log("sleep for:" + std::to_string((fpms-run_time).count()), LogLevel::INFO);
+                // logger->Log("Sleep ", LogLevel::INFO);
 
                 logger->tempCounterFramesOut++;
                 logger->LogGraph(std::to_string(logger->tempCounterFramesOut), "framesOut");
-                sleep_for(microseconds(16670) - run_time);
+                
+                //sleep_for(average_slp - run_time);
+                sleep_for(average_slp  - run_time);
                 //frame display for 16.67 ms
                 //16.67 - run_time
             } else {
@@ -500,7 +504,7 @@ void Pacer::renderFrame(AVFrame *frame)
 {
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
-    testQueue->IPolicyQueue(frame);
+    testQueue->EPolicyQueue(frame);
 }
 
 void Pacer::dropFrameForEnqueue(QQueue<AVFrame *> &queue)
