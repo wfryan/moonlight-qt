@@ -188,6 +188,7 @@ void Pacer::enqueueFrameForRenderingAndUnlock(AVFrame *frame)
     logger->tempCounterFramesOut++;
     logger->LogGraph(std::to_string(logger->tempCounterFramesOut), "framesIn");
 
+
     m_RenderQueue.enqueue(frame);
 
     m_FrameQueueLock.unlock();
