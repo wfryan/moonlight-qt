@@ -185,8 +185,9 @@ void Pacer::enqueueFrameForRenderingAndUnlock(AVFrame *frame)
 
     //tracking when frame is input
     auto logger = Logger::GetInstance();
-    logger->tempCounterFramesOut++;
-    logger->LogGraph(std::to_string(logger->tempCounterFramesOut), "framesIn");
+    logger->tempCounterRenderRan++;
+    logger->LogGraph(std::to_string(logger->tempCounterRenderRan), "renderRan");
+
 
 
     m_RenderQueue.enqueue(frame);
@@ -345,6 +346,8 @@ void Pacer::signalVsync()
 
 void Pacer::renderFrame(AVFrame* frame)
 {
+
+
     // Count time spent in Pacer's queues
     Uint32 beforeRender = SDL_GetTicks();
     m_VideoStats->totalPacerTime += beforeRender - frame->pkt_dts;

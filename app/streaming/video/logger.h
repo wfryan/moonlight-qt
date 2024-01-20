@@ -26,7 +26,7 @@ class Logger{
         static std::shared_ptr<Logger> GetInstance(); //pointer of logger instance
 
         //temp Counter variables
-        int tempCounterFramesIn = 0;
+        int tempCounterRenderRan = 0;
         int tempCounterFramesOut = 0;
 
 

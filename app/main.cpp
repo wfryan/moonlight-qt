@@ -279,7 +279,7 @@ LONG WINAPI UnhandledExceptionHandler(struct _EXCEPTION_POINTERS *ExceptionInfo)
 int main(int argc, char *argv[])
 {
     auto logger = Logger::GetInstance();
-    std::vector<std::string> columnVector{"framesIn", "framesOut"};
+    std::vector<std::string> columnVector{"renderRan", "framesOut"};
     logger->SetPrefs("D:/log-file-output", LogLevel::GRAPHING, columnVector);
     logger->Log("Begin Log:", LogLevel::INFO);
 
