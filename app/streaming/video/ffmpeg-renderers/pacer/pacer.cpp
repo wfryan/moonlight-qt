@@ -1,5 +1,6 @@
 #include "pacer.h"
 #include "streaming/streamutils.h"
+#include "streaming/video/logger.h"
 
 #ifdef Q_OS_WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -160,6 +161,11 @@ int Pacer::renderThread(void* context)
             break;
         }
 
+        //tracking when frame is output
+        auto logger = Logger::GetInstance();
+        logger->tempCounterFramesOut++;
+        logger->LogGraph(std::to_string(logger->tempCounterFramesOut), "framesOut");
+
         AVFrame* frame = me->m_RenderQueue.dequeue();
         me->m_FrameQueueLock.unlock();
 
@@ -176,6 +182,12 @@ int Pacer::renderThread(void* context)
 void Pacer::enqueueFrameForRenderingAndUnlock(AVFrame *frame)
 {
     dropFrameForEnqueue(m_RenderQueue);
+
+    //tracking when frame is input
+    auto logger = Logger::GetInstance();
+    logger->tempCounterFramesOut++;
+    logger->LogGraph(std::to_string(logger->tempCounterFramesOut), "framesIn");
+
     m_RenderQueue.enqueue(frame);
 
     m_FrameQueueLock.unlock();
@@ -375,6 +387,7 @@ void Pacer::renderFrame(AVFrame* frame)
 
     // Catch up if we're several frames ahead
     while (m_RenderQueue.count() > frameDropTarget) {
+
         AVFrame* frame = m_RenderQueue.dequeue();
 
         // Drop the lock while we call av_frame_free()
