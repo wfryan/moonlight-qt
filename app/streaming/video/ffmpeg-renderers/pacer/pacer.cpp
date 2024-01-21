@@ -185,8 +185,8 @@ void Pacer::enqueueFrameForRenderingAndUnlock(AVFrame *frame)
 
     //tracking when frame is input
     auto logger = Logger::GetInstance();
-    logger->tempCounterRenderRan++;
-    logger->LogGraph(std::to_string(logger->tempCounterRenderRan), "renderRan");
+    logger->tempCounterFramesIn++;
+    logger->LogGraph(std::to_string(logger->tempCounterFramesIn), "framesIn");
 
 
 
