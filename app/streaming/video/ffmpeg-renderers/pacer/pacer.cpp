@@ -407,7 +407,11 @@ void Pacer::renderFrameDequeueThread()
             microseconds fpms = testQueue->currentLatencyMicro;
             // note: value of 20 currently has no effect, set by dequeuing variable
             AVFrame *framede = testQueue->dequeue();
-            testQueue->queueSize();
+            logger->tempCounterFramesOut++;
+            logger->LogGraph(std::to_string(logger->tempCounterFramesOut), "framesOut");
+            
+
+            logger->LogGraph(std::to_string(testQueue->getQueueSize()), "queueSize");
             Uint32 beforeRender = SDL_GetTicks();
             logger->Log("Time before render " + std::to_string(beforeRender) + " Frame pkt " + std::to_string(framede->pkt_dts), LogLevel::INFO);
             m_VideoStats->totalPacerTime += beforeRender - framede->pkt_dts;
@@ -475,7 +479,7 @@ void Pacer::renderFrameDequeueThread()
             
             microseconds average_slp = testQueue->avg;
 
-            //logger->Log("logging sleep time" + std::to_string(average_slp.count()), LogLevel::INFO);
+            logger->Log("logging sleep time" + std::to_string(average_slp.count()), LogLevel::INFO);
 
             if (run_time < average_slp)
             {
@@ -484,8 +488,6 @@ void Pacer::renderFrameDequeueThread()
                 // logger->Log("sleep for:" + std::to_string((fpms-run_time).count()), LogLevel::INFO);
                 // logger->Log("Sleep ", LogLevel::INFO);
 
-                logger->tempCounterFramesOut++;
-                logger->LogGraph(std::to_string(logger->tempCounterFramesOut), "framesOut");
                 
                 //sleep_for(average_slp - run_time);
                 sleep_for(average_slp  - run_time);
@@ -494,7 +496,7 @@ void Pacer::renderFrameDequeueThread()
             } else {
                 logger->Log("sleep not necessary", LogLevel::INFO);
             }
-        }
+        } 
         
     }
 
@@ -505,6 +507,10 @@ void Pacer::renderFrame(AVFrame *frame)
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
     testQueue->EPolicyQueue(frame);
+    
+    logger->tempCounterFramesIn++;
+    logger->LogGraph(std::to_string(logger->tempCounterFramesIn), "framesIn");
+    logger->LogGraph(std::to_string(testQueue->getQueueSize()), "QueueSize");
 }
 
 void Pacer::dropFrameForEnqueue(QQueue<AVFrame *> &queue)

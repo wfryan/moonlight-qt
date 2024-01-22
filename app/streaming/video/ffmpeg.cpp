@@ -1389,8 +1389,6 @@ void FFmpegVideoDecoder::decoderThreadProc()
                     // Queue the frame for rendering (or render now if pacer is disabled)
 
                     logger->Log("using submitFrame to render", LogLevel::INFO);
-                    logger->tempCounterFramesIn++;
-                    logger->LogGraph(std::to_string(logger->tempCounterFramesIn), "framesIn");
                     m_Pacer->submitFrame(frame);
                 }
                 else if (err == AVERROR(EAGAIN)) {
