@@ -7,6 +7,7 @@
 #include <ctime>
 #include <sstream>
 #include <vector>
+#include <mutex>
 
 enum class LogLevel {
     GRAPHING = 0,

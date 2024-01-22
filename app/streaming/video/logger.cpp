@@ -3,6 +3,8 @@
 //shared pointer instance of logger
 std::shared_ptr<Logger> Logger::loggerInstance;
 
+std::mutex print_mutex;
+
 //sets up ordinary log file
 void Logger::SetPrefs(std::string logFileName, LogLevel level, std::vector<std::string> input_columns){
 
@@ -108,7 +110,9 @@ void Logger::LogGraph(std::string input, std::string column){
 
 //enters proper log message into file
 void Logger::FileOutput(const std::string& message){
+	print_mutex.lock();
     logFile << message << std::endl;
+	print_mutex.unlock();
 }
 
 //calculates current time in ms

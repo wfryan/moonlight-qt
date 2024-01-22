@@ -168,6 +168,9 @@ int Pacer::renderThread(void* context)
 
         AVFrame* frame = me->m_RenderQueue.dequeue();
         me->m_FrameQueueLock.unlock();
+        logger->tempCounterFramesOut++;
+        logger->LogGraph("hello", "OutputLog");
+
 
         me->renderFrame(frame);
     }
