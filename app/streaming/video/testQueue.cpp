@@ -5,25 +5,27 @@ using namespace std::chrono;
 using Clock = steady_clock;
 using std::this_thread::sleep_for;
 
-int counter = 0;
-bool haveLatency = false;
-milliseconds renderFrameTime = milliseconds(0);
-microseconds renderFrameTimeMicro = microseconds(0);
+int counter = 0; //count of frames seen
 
-milliseconds start = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-microseconds micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+milliseconds renderFrameTime = milliseconds(0); //sum of interframe times (should change)
+microseconds renderFrameTimeMicro = microseconds(0); //sum of interframe times microseconds(probably should change)
 
-std::shared_ptr<testQueue> testQueue::queueInstance;
-std::queue<AVFrame *> myqueue;
-std::mutex queue_mutex;
-milliseconds lastFrameTime = milliseconds::zero();
-microseconds lastFrameTimeMicro = microseconds::zero();
-// State 0 = queueing, State 1 = Dequeuing
-int queueState = 0;
-milliseconds currentLatency = milliseconds(0);
-microseconds currentLatencyMicro = microseconds(0);
-milliseconds dequeue_latency = milliseconds(0);
-microseconds avg = microseconds(16670);
+milliseconds start = duration_cast<milliseconds>(system_clock::now().time_since_epoch()); //program start
+microseconds micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch()); //program start in microsecond
+
+milliseconds lastFrameTime = milliseconds::zero(); //Time of last frame arrival
+microseconds lastFrameTimeMicro = microseconds::zero(); //Time of last frame arrival in micro seconds
+
+milliseconds averageInterFrameTime = milliseconds(0); //average interframe time of the stream
+microseconds averageInterFrameTimeMicro = microseconds(0); //Average interframe time of the stream
+
+microseconds avg = microseconds(16670); //Target frametime (should pick a different name)
+
+std::shared_ptr<testQueue> testQueue::queueInstance; //singleton queue instance
+std::queue<AVFrame *> myqueue; //actual queue
+std::mutex queue_mutex; //mutex lock
+
+int queueState = 0; // State 0 = queueing, State 1 = Dequeuing
 double alpha = 0.9;
 
 void testQueue::enqueue(AVFrame *frame)
@@ -108,61 +110,53 @@ void testQueue::IPolicyQueue(AVFrame *frame)
     auto logger = Logger::GetInstance();
     milliseconds timeArrived = getFrameTime();
     microseconds timeArrivedMicro = getFrameTimeMicrosecond();
-
-    milliseconds latency = timeArrived - lastFrameTime;
-    microseconds latencyMicro = timeArrivedMicro - lastFrameTimeMicro;
+    milliseconds interFrameTime = timeArrived - lastFrameTime;
+    microseconds interFrameTimeMicro = timeArrivedMicro - lastFrameTimeMicro;
 
     if (counter >= 4)
     {
-        currentLatency = renderFrameTime / counter;
-        currentLatencyMicro = renderFrameTimeMicro / counter;
-        haveLatency = true;
+        averageInterFrameTime = renderFrameTime / counter;
+        averageInterFrameTimeMicro = renderFrameTimeMicro / counter;
+
     }
 
-    logger->Log(("The last frame time is " + std::to_string(lastFrameTime.count()) + " Latency is " + std::to_string(latency.count())), LogLevel::INFO);
+    logger->Log(("The last frame time is " + std::to_string(lastFrameTime.count()) + " Latency is " + std::to_string(interFrameTime.count())), LogLevel::INFO);
+    logger->Log("current latency:" + std::to_string(averageInterFrameTime.count()), LogLevel::INFO);
+    logger->Log("latency:" + std::to_string(interFrameTime.count()), LogLevel::INFO);
 
-    logger->Log("current latency:" + std::to_string(currentLatency.count()), LogLevel::INFO);
-    logger->Log("latency:" + std::to_string(latency.count()), LogLevel::INFO);
-    if (latencyMicro > (avg + currentLatencyMicro) && frame->key_frame == 0 && queueState == 1)
+    if (interFrameTimeMicro > (avg + averageInterFrameTimeMicro) && frame->key_frame == 0 && queueState == 1)
     {
-//        logger->Log("Counter:" + std::to_string(counter), LogLevel::INFO);
-//        logger->Log("current latency:" + std::to_string(currentLatency.count()), LogLevel::INFO);
-//        logger->Log("latency:" + std::to_string(latency.count()), LogLevel::INFO);
-//        logger->LogGraph(std::to_string(latency.count()), "latency");
         logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
         av_frame_free(&frame);
-        //logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
+
         lastFrameTime = timeArrived;
         lastFrameTimeMicro = timeArrivedMicro;
-        counter++;
-        if(counter > 1){
-            renderFrameTime += latency;
-            renderFrameTimeMicro += latencyMicro;
-            avg = duration_cast<microseconds>((avg * 0.99) + (1 - 0.99) * latencyMicro);
-            //logger->Log(std::to_string(avg.count()), LogLevel::INFO);
-        }
+        counter++; //count of frames
 
-        
+        if(counter > 1){
+            renderFrameTime += interFrameTime;
+            renderFrameTimeMicro += interFrameTimeMicro;
+            avg = duration_cast<microseconds>((avg * 0.99) + (1 - 0.99) * interFrameTimeMicro);
+        }
     }
     else
     {
-
-        queue_mutex.lock();
+        queue_mutex.lock(); //LOCKING SELF
         myqueue.push(frame);
-        counter++;
+        counter++; //count of frames
+
         if(counter > 1){
-            renderFrameTime += latency;
-            renderFrameTimeMicro += latencyMicro;
-            avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * latencyMicro);
+            renderFrameTime += interFrameTime;
+            renderFrameTimeMicro += interFrameTimeMicro;
+            avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * interFrameTimeMicro); //adjust the target frame time based on the current interframe time 
         }
 
         lastFrameTime = timeArrived;
         lastFrameTimeMicro = timeArrivedMicro;
-
-        logger->LogGraph(std::to_string(myqueue.size()), "queueSize");
         
-        queue_mutex.unlock();
+        queue_mutex.unlock(); //UNLOCKING SELF
 
+        logger->LogGraph(std::to_string(getQueueSize()), "queueSize");
         logger->Log(("Queueing Frame" + std::to_string(frame->pts)), LogLevel::INFO);
         logger->Log("Queue Size after queueing: " + std::to_string(getQueueSize()), LogLevel::INFO);
 
@@ -191,37 +185,28 @@ void testQueue::EPolicyQueue(AVFrame *frame)
     auto logger = Logger::GetInstance();
     milliseconds timeArrived = getFrameTime();
     microseconds timeArrivedMicro = getFrameTimeMicrosecond();
-    milliseconds latency = timeArrived - lastFrameTime;
-    microseconds latencyMicro = timeArrivedMicro - lastFrameTimeMicro;
+    milliseconds interFrameTime = timeArrived - lastFrameTime; //time between frames
+    microseconds interFrameTimeMicro = timeArrivedMicro - lastFrameTimeMicro; //time between frames for our calculations
 
-    if (counter >= 4)
-    {
-        currentLatency = renderFrameTime / counter;
-        currentLatencyMicro = renderFrameTimeMicro / counter;
-        haveLatency = true;
-    }
-
-    
-
-    logger->Log(("The last frame time is " + std::to_string(lastFrameTime.count()) + " Latency is " + std::to_string(latency.count())), LogLevel::INFO);
-    logger->Log("current latency:" + std::to_string(currentLatency.count()), LogLevel::INFO);
-    logger->Log("latency:" + std::to_string(latency.count()), LogLevel::INFO);
-    queue_mutex.lock();
+    queue_mutex.lock(); //LOCKING SELF
     myqueue.push(frame);
     counter++;
+
     if(counter > 1){
-        renderFrameTime += latency;
-        renderFrameTimeMicro += latencyMicro;
-        avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * latencyMicro);
+        renderFrameTime += interFrameTime;
+        renderFrameTimeMicro += interFrameTimeMicro;
+        avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * interFrameTimeMicro); //adjust the target interframe time based on the current interframe time
     }
 
-    lastFrameTime = timeArrived;
+    logger->Log("The last frame time is " + std::to_string(lastFrameTime.count()), LogLevel::INFO); 
+    logger->Log("Average interframe time:" + std::to_string(averageInterFrameTime.count()), LogLevel::INFO);
+    lastFrameTime = timeArrived; //setting previous frame time of arrival
     lastFrameTimeMicro = timeArrivedMicro;
 
-    logger->LogGraph(std::to_string(myqueue.size()), "queueSize");
+    queue_mutex.unlock(); //UNLOCKING SELF
 
-    queue_mutex.unlock();
-
+    logger->Log("interFrameTime:" + std::to_string(interFrameTime.count()), LogLevel::INFO);
+    logger->LogGraph(std::to_string(getQueueSize()), "queueSize");
     logger->Log(("Queueing Frame" + std::to_string(frame->pts)), LogLevel::INFO);
     logger->Log("Queue Size after queueing: " + std::to_string(getQueueSize()), LogLevel::INFO);
 
