@@ -20,8 +20,7 @@ using namespace std::chrono;
 class testQueue{
 
     public:
-        //void SetPrefs(std::string logFileName, LogLevel level);
-        //void Log(std::string input, LogLevel level);
+
         void enqueue(AVFrame* frame);
         void queueSize();
         int getQueueSize();
@@ -32,13 +31,10 @@ class testQueue{
         milliseconds getFrameTime();
         AVFrame* dequeue();
         bool dequeueing();
-        bool EPolicyDequeuing();
-        milliseconds currentLatency;
+        milliseconds averageInterFrameTime;
         microseconds getFrameTimeMicrosecond();
-        microseconds currentLatencyMicro;
-        microseconds avg = microseconds(16670);
-        //void run();
-        microseconds getSleepTimeValue();
+        microseconds averageInterFrameTimeMicro;
+        microseconds avg;
 
 
     private:
