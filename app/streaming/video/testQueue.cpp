@@ -77,6 +77,15 @@ bool testQueue::dequeueing()
     return false;
 }
 
+bool testQueue::EPolicyDequeuing(){
+    if (getQueueSize() > 0)
+    {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 std::shared_ptr<testQueue> testQueue::GetInstance()
 {
     if (queueInstance == nullptr)
@@ -103,6 +112,16 @@ AVFrame *testQueue::dequeue()
 
 
     return currentf;
+}
+
+microseconds testQueue::getSleepTimeValue(){
+    microseconds tempSleepTimeVal;
+    sleepTime_mutex.lock();
+    tempSleepTimeVal = avg;
+    sleepTime_mutex.unlock();
+    return tempSleepTimeVal;
+
+    
 }
 
 void testQueue::IPolicyQueue(AVFrame *frame)

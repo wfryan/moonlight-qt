@@ -37,7 +37,6 @@ class testQueue{
         microseconds avg;
 
 
-
     private:
         std::queue<AVFrame*> myqueue; 
         static std::shared_ptr<testQueue> queueInstance;

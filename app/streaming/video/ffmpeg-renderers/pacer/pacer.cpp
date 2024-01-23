@@ -401,7 +401,7 @@ void Pacer::renderFrameDequeueThread()
     while (true)
     {
         //if testQueue is in the dequeueing phase
-        if (testQueue->dequeueing())
+        if (testQueue->EPolicyDequeuing())
         {
             microseconds start = testQueue->getFrameTimeMicrosecond();
             microseconds fpms = testQueue->averageInterFrameTimeMicro;
@@ -477,7 +477,7 @@ void Pacer::renderFrameDequeueThread()
             microseconds end = testQueue->getFrameTimeMicrosecond();
             microseconds run_time = (end - start);
             
-            microseconds average_slp = testQueue->avg;
+            microseconds average_slp = testQueue->getSleepTimeValue();
 
             logger->Log("logging sleep time" + std::to_string(average_slp.count()), LogLevel::INFO);
 
@@ -488,9 +488,17 @@ void Pacer::renderFrameDequeueThread()
                 // logger->Log("sleep for:" + std::to_string((fpms-run_time).count()), LogLevel::INFO);
                 // logger->Log("Sleep ", LogLevel::INFO);
 
-                
+                //logger->LogGraph(std::to_string((average_slp  - run_time - sleepForDifference).count()), "expectedSleepTime");
                 //sleep_for(average_slp - run_time);
-                sleep_for(average_slp  - run_time);
+                logger->LogGraph(std::to_string(average_slp.count()), "sleepValue");
+                //microseconds beginSleepTime = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+                sleep_for(average_slp  - run_time); //need to account for sleep inaccuracies
+                //microseconds endSleepTime = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+                
+                //sleepForDifference = endSleepTime - beginSleepTime - average_slp - run_time;
+                //logger->LogGraph(std::to_string((endSleepTime - beginSleepTime).count()), "actualSleepTime");
+                
+                
                 //frame display for 16.67 ms
                 //16.67 - run_time
             } else {
