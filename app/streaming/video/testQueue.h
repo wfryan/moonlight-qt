@@ -32,11 +32,13 @@ class testQueue{
         milliseconds getFrameTime();
         AVFrame* dequeue();
         bool dequeueing();
+        bool EPolicyDequeuing();
         milliseconds currentLatency;
         microseconds getFrameTimeMicrosecond();
         microseconds currentLatencyMicro;
-        microseconds avg;
+        microseconds avg = microseconds(16670);
         //void run();
+        microseconds getSleepTimeValue();
 
 
     private:

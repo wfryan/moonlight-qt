@@ -7,6 +7,16 @@
 #include <QMutex>
 #include <QWaitCondition>
 
+#include <string>
+#include <iostream>
+#include <memory>
+#include <fstream>
+#include <chrono>
+#include <ctime>
+#include <queue>
+#include <mutex>
+#include <thread>
+
 class IVsyncSource {
 public:
     virtual ~IVsyncSource() {}
@@ -40,6 +50,7 @@ public:
     static int renderFrameDequeueThreadProc(void* context);
 
     //AVFrame* renderFrameDequeue(AVFrame* frame);
+    std::chrono::microseconds sleepForDifference = std::chrono::microseconds(0);
 
 private:
     static int vsyncThread(void* context);
@@ -77,4 +88,6 @@ private:
     int m_RendererAttributes;
 
     SDL_Thread* m_DequeueThread;
+
+    
 };

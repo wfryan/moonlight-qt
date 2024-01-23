@@ -16,6 +16,7 @@ microseconds micro_start = duration_cast<microseconds>(system_clock::now().time_
 std::shared_ptr<testQueue> testQueue::queueInstance;
 std::queue<AVFrame *> myqueue;
 std::mutex queue_mutex;
+std::mutex sleepTime_mutex;
 milliseconds lastFrameTime = milliseconds::zero();
 microseconds lastFrameTimeMicro = microseconds::zero();
 // State 0 = queueing, State 1 = Dequeuing
@@ -23,7 +24,7 @@ int queueState = 0;
 milliseconds currentLatency = milliseconds(0);
 microseconds currentLatencyMicro = microseconds(0);
 milliseconds dequeue_latency = milliseconds(0);
-microseconds avg = microseconds(16670);
+
 double alpha = 0.9;
 
 void testQueue::enqueue(AVFrame *frame)
@@ -75,6 +76,15 @@ bool testQueue::dequeueing()
     return false;
 }
 
+bool testQueue::EPolicyDequeuing(){
+    if (getQueueSize() > 0)
+    {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 std::shared_ptr<testQueue> testQueue::GetInstance()
 {
     if (queueInstance == nullptr)
@@ -101,6 +111,16 @@ AVFrame *testQueue::dequeue()
 
 
     return currentf;
+}
+
+microseconds testQueue::getSleepTimeValue(){
+    microseconds tempSleepTimeVal;
+    sleepTime_mutex.lock();
+    tempSleepTimeVal = avg;
+    sleepTime_mutex.unlock();
+    return tempSleepTimeVal;
+
+    
 }
 
 void testQueue::IPolicyQueue(AVFrame *frame)
@@ -153,7 +173,9 @@ void testQueue::IPolicyQueue(AVFrame *frame)
         if(counter > 1){
             renderFrameTime += latency;
             renderFrameTimeMicro += latencyMicro;
+
             avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * latencyMicro);
+
         }
 
         lastFrameTime = timeArrived;
@@ -193,6 +215,8 @@ void testQueue::EPolicyQueue(AVFrame *frame)
     microseconds timeArrivedMicro = getFrameTimeMicrosecond();
     milliseconds latency = timeArrived - lastFrameTime;
     microseconds latencyMicro = timeArrivedMicro - lastFrameTimeMicro;
+    logger->LogGraph(std::to_string(latencyMicro.count()), "interFrameTime");
+
 
     if (counter >= 4)
     {
@@ -210,10 +234,12 @@ void testQueue::EPolicyQueue(AVFrame *frame)
     myqueue.push(frame);
     counter++;
     if(counter > 1){
-        renderFrameTime += latency;
-        renderFrameTimeMicro += latencyMicro;
-        avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * latencyMicro);
+        sleepTime_mutex.lock();
+        avg = duration_cast<microseconds>((avg * 0.95) + ((1 - 0.95) * latencyMicro)); //interframe Time
+        sleepTime_mutex.unlock();
     }
+
+    logger->LogGraph(std::to_string(getSleepTimeValue().count()), "sleepTimeValue");
 
     lastFrameTime = timeArrived;
     lastFrameTimeMicro = timeArrivedMicro;
