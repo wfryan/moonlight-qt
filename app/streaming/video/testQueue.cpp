@@ -21,6 +21,7 @@ microseconds averageInterFrameTimeMicro = microseconds(0); //Average interframe 
 
 microseconds avg = microseconds(16670); //Target frametime (should pick a different name)
 
+
 std::shared_ptr<testQueue> testQueue::queueInstance; //singleton queue instance
 std::queue<AVFrame *> myqueue; //actual queue
 std::mutex queue_mutex; //mutex lock
@@ -209,24 +210,33 @@ void testQueue::EPolicyQueue(AVFrame *frame)
 
     queue_mutex.lock(); //LOCKING SELF
     myqueue.push(frame);
-    counter++;
+    queue_mutex.unlock();
+    
 
-    if(counter > 1){
-        renderFrameTime += interFrameTime;
-        renderFrameTimeMicro += interFrameTimeMicro;
+    sleepTime_mutex.lock();
+
+    if(counter == 1){
+        avg = interFrameTimeMicro;
+    }else if(counter > 2){
         avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * interFrameTimeMicro); //adjust the target interframe time based on the current interframe time
     }
 
-    logger->Log("The last frame time is " + std::to_string(lastFrameTime.count()), LogLevel::INFO); 
-    logger->Log("Average interframe time:" + std::to_string(averageInterFrameTime.count()), LogLevel::INFO);
+
+    sleepTime_mutex.unlock();
+    logger->LogGraph(std::to_string(interFrameTimeMicro.count()), "interFrameTime");
+
     lastFrameTime = timeArrived; //setting previous frame time of arrival
     lastFrameTimeMicro = timeArrivedMicro;
 
-    queue_mutex.unlock(); //UNLOCKING SELF
+     //UNLOCKING SELF
+
+
+    counter++;
 
     logger->Log("interFrameTime:" + std::to_string(interFrameTime.count()), LogLevel::INFO);
     logger->LogGraph(std::to_string(getQueueSize()), "queueSize");
     logger->Log(("Queueing Frame" + std::to_string(frame->pts)), LogLevel::INFO);
     logger->Log("Queue Size after queueing: " + std::to_string(getQueueSize()), LogLevel::INFO);
+
 
 }

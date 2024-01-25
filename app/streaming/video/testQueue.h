@@ -26,11 +26,14 @@ class testQueue{
         int getQueueSize();
         static std::shared_ptr<testQueue> GetInstance(); //pointer of logger instance
         std::mutex queue_mutex;
+        std::mutex sleepTime_mutex;
         void IPolicyQueue(AVFrame* frame);
         void EPolicyQueue(AVFrame *frame);
         milliseconds getFrameTime();
+        microseconds getSleepTimeValue();
         AVFrame* dequeue();
         bool dequeueing();
+        bool EPolicyDequeuing();
         milliseconds averageInterFrameTime;
         microseconds getFrameTimeMicrosecond();
         microseconds averageInterFrameTimeMicro;

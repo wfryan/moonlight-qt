@@ -491,9 +491,29 @@ void Pacer::renderFrameDequeueThread()
                 //logger->LogGraph(std::to_string((average_slp  - run_time - sleepForDifference).count()), "expectedSleepTime");
                 //sleep_for(average_slp - run_time);
                 logger->LogGraph(std::to_string(average_slp.count()), "sleepValue");
-                //microseconds beginSleepTime = duration_cast<microseconds>(system_clock::now().time_since_epoch());
-                sleep_for(average_slp  - run_time); //need to account for sleep inaccuracies
-                //microseconds endSleepTime = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+                logger->LogGraph(std::to_string(sleepForDifference.count()), "oversleepValue");
+                microseconds beginSleepTime = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+                sleep_for(average_slp  - run_time - sleepForDifference); //need to account for sleep inaccuracies
+                microseconds endSleepTime = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+
+                microseconds realSleepTime = (endSleepTime - beginSleepTime);
+                microseconds expectedSleepTime = (average_slp  - run_time);
+
+                logger->LogGraph(std::to_string((endSleepTime - beginSleepTime).count()), "actualSleepTime");
+
+                logger->LogGraph(std::to_string((average_slp).count()), "average_slp");
+                logger->LogGraph(std::to_string((run_time).count()), "run_time");
+
+
+                //Attempting to alleviate sleep_for inaccuracies
+                //sometimes produces negative values, unsure of cause
+                sleepForDifference = (endSleepTime - beginSleepTime) - (average_slp  - run_time);
+                if(sleepForDifference < microseconds(0)){
+                    sleepForDifference = microseconds(0);
+                }
+
+
+                
                 
                 //sleepForDifference = endSleepTime - beginSleepTime - average_slp - run_time;
                 //logger->LogGraph(std::to_string((endSleepTime - beginSleepTime).count()), "actualSleepTime");

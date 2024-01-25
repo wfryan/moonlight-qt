@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
 {
 
     auto logger = Logger::GetInstance();
-    std::vector<std::string> columnVector{"framesIn", "framesOut", "queueSize", "sleepValue", "interFrameTime", "sleepTimeValue"};
+    std::vector<std::string> columnVector{"framesIn", "framesOut", "queueSize", "sleepValue", "interFrameTime", "oversleepValue", "actualSleepTime", "average_slp", "run_time" };
     logger->SetPrefs("C:/Users/claypool/Desktop/log-file-output", LogLevel::GRAPHING, columnVector);
     // std::vector<std::string> columnVector{"avg sleep val"};
     // logger->SetPrefs("C:/Log Output", LogLevel::INFO, columnVector);
