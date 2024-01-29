@@ -223,7 +223,7 @@ void testQueue::EPolicyQueue(AVFrame *frame)
 
 
     sleepTime_mutex.unlock();
-    logger->LogGraph(std::to_string(interFrameTimeMicro.count()), "interFrameTime");
+    logger->LogGraph(std::to_string(interFrameTimeMicro.count()), "interFrameTimeEnqueue");
 
     lastFrameTime = timeArrived; //setting previous frame time of arrival
     lastFrameTimeMicro = timeArrivedMicro;

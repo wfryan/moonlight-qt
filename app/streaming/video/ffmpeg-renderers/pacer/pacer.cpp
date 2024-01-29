@@ -47,6 +47,8 @@ Pacer::Pacer(IFFmpegRenderer *renderer, PVIDEO_STATS videoStats) : m_RenderThrea
 {
 }
 
+microseconds lastFrameTimeDequeueMicro = microseconds::zero(); //Time of last frame arrival in micro seconds
+
 Pacer::~Pacer()
 {
     m_Stopping = true;
@@ -404,9 +406,14 @@ void Pacer::renderFrameDequeueThread()
         if (testQueue->EPolicyDequeuing())
         {
             microseconds start = testQueue->getFrameTimeMicrosecond();
-            microseconds fpms = testQueue->averageInterFrameTimeMicro;
+            //microseconds fpms = testQueue->averageInterFrameTimeMicro;
             // note: value of 20 currently has no effect, set by dequeuing variable
             AVFrame *framede = testQueue->dequeue();
+
+            logger->LogGraph(std::to_string((start - lastFrameTimeDequeueMicro).count()), "interFrameTimeDequeue");
+
+            lastFrameTimeDequeueMicro = testQueue->getFrameTimeMicrosecond();
+
             logger->tempCounterFramesOut++;
             logger->LogGraph(std::to_string(logger->tempCounterFramesOut), "framesOut");
             
@@ -474,6 +481,9 @@ void Pacer::renderFrameDequeueThread()
 
             m_FrameQueueLock.unlock();
 
+            //moonlight code end
+
+
             microseconds end = testQueue->getFrameTimeMicrosecond();
             microseconds run_time = (end - start);
             
@@ -490,14 +500,17 @@ void Pacer::renderFrameDequeueThread()
 
                 //logger->LogGraph(std::to_string((average_slp  - run_time - sleepForDifference).count()), "expectedSleepTime");
                 //sleep_for(average_slp - run_time);
+
+                microseconds expectedSleepTime = (average_slp  - run_time - sleepForDifference);
+
                 logger->LogGraph(std::to_string(average_slp.count()), "sleepValue");
                 logger->LogGraph(std::to_string(sleepForDifference.count()), "oversleepValue");
-                microseconds beginSleepTime = duration_cast<microseconds>(system_clock::now().time_since_epoch());
-                sleep_for(average_slp  - run_time - sleepForDifference); //need to account for sleep inaccuracies
-                microseconds endSleepTime = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+                microseconds beginSleepTime = testQueue->getFrameTimeMicrosecond();
+                sleep_for(expectedSleepTime - microseconds(500)); //need to account for sleep inaccuracies
+                microseconds endSleepTime = testQueue->getFrameTimeMicrosecond();
 
                 microseconds realSleepTime = (endSleepTime - beginSleepTime);
-                microseconds expectedSleepTime = (average_slp  - run_time);
+                
 
                 logger->LogGraph(std::to_string((endSleepTime - beginSleepTime).count()), "actualSleepTime");
 
@@ -507,7 +520,7 @@ void Pacer::renderFrameDequeueThread()
 
                 //Attempting to alleviate sleep_for inaccuracies
                 //sometimes produces negative values, unsure of cause
-                sleepForDifference = (endSleepTime - beginSleepTime) - (average_slp  - run_time);
+                sleepForDifference = realSleepTime - expectedSleepTime;
                 if(sleepForDifference < microseconds(0)){
                     sleepForDifference = microseconds(0);
                 }
@@ -524,7 +537,9 @@ void Pacer::renderFrameDequeueThread()
             } else {
                 logger->Log("sleep not necessary", LogLevel::INFO);
             }
-        } 
+        } else {
+            //logger->LogGraph("Dequeue Failed", "failed_dequeue");
+        }
         
     }
 
