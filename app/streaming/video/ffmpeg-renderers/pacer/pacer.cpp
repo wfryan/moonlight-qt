@@ -403,7 +403,7 @@ void Pacer::renderFrameDequeueThread()
     while (true)
     {
         //if testQueue is in the dequeueing phase
-        if (testQueue->EPolicyDequeuing())
+        if (testQueue->dequeueing())
         {
             microseconds start = testQueue->getFrameTimeMicrosecond();
             //microseconds fpms = testQueue->averageInterFrameTimeMicro;
@@ -506,7 +506,7 @@ void Pacer::renderFrameDequeueThread()
                 logger->LogGraph(std::to_string(average_slp.count()), "sleepValue");
                 logger->LogGraph(std::to_string(sleepForDifference.count()), "oversleepValue");
                 microseconds beginSleepTime = testQueue->getFrameTimeMicrosecond();
-                sleep_for(expectedSleepTime - microseconds(500)); //need to account for sleep inaccuracies
+                sleep_for(expectedSleepTime - microseconds(1220)); //need to account for sleep inaccuracies
                 microseconds endSleepTime = testQueue->getFrameTimeMicrosecond();
 
                 microseconds realSleepTime = (endSleepTime - beginSleepTime);
@@ -520,10 +520,10 @@ void Pacer::renderFrameDequeueThread()
 
                 //Attempting to alleviate sleep_for inaccuracies
                 //sometimes produces negative values, unsure of cause
-                sleepForDifference = realSleepTime - expectedSleepTime;
-                if(sleepForDifference < microseconds(0)){
-                    sleepForDifference = microseconds(0);
-                }
+                //sleepForDifference = realSleepTime - expectedSleepTime;
+                //if(sleepForDifference < microseconds(0)){
+                //    sleepForDifference = microseconds(0);
+                //}
 
 
                 
@@ -549,7 +549,7 @@ void Pacer::renderFrame(AVFrame *frame)
 {
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
-    testQueue->EPolicyQueue(frame);
+    testQueue->IPolicyQueue(frame);
     
     logger->tempCounterFramesIn++;
     logger->LogGraph(std::to_string(logger->tempCounterFramesIn), "framesIn");
