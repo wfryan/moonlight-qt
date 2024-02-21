@@ -500,13 +500,16 @@ void Pacer::renderFrameDequeueThread()
 
                 //logger->LogGraph(std::to_string((average_slp  - run_time - sleepForDifference).count()), "expectedSleepTime");
                 //sleep_for(average_slp - run_time);
+                if(testQueue->getQueueMonitor()){
+                    testQueue->adjustOffsetVal();
+                }
 
                 microseconds expectedSleepTime = (average_slp  - run_time - sleepForDifference);
-
+                int sleepOffset = testQueue->getSleepOffVal();
                 logger->LogGraph(std::to_string(average_slp.count()), "sleepValue");
                 logger->LogGraph(std::to_string(sleepForDifference.count()), "oversleepValue");
                 microseconds beginSleepTime = testQueue->getFrameTimeMicrosecond();
-                sleep_for(expectedSleepTime - microseconds(1220)); //need to account for sleep inaccuracies
+                sleep_for(expectedSleepTime - microseconds(sleepOffset)); //need to account for sleep inaccuracies
                 microseconds endSleepTime = testQueue->getFrameTimeMicrosecond();
 
                 microseconds realSleepTime = (endSleepTime - beginSleepTime);
@@ -516,21 +519,6 @@ void Pacer::renderFrameDequeueThread()
 
                 logger->LogGraph(std::to_string((average_slp).count()), "average_slp");
                 logger->LogGraph(std::to_string((run_time).count()), "run_time");
-
-
-                //Attempting to alleviate sleep_for inaccuracies
-                //sometimes produces negative values, unsure of cause
-                //sleepForDifference = realSleepTime - expectedSleepTime;
-                //if(sleepForDifference < microseconds(0)){
-                //    sleepForDifference = microseconds(0);
-                //}
-
-
-                
-                
-                //sleepForDifference = endSleepTime - beginSleepTime - average_slp - run_time;
-                //logger->LogGraph(std::to_string((endSleepTime - beginSleepTime).count()), "actualSleepTime");
-                
                 
                 //frame display for 16.67 ms
                 //16.67 - run_time
@@ -549,7 +537,8 @@ void Pacer::renderFrame(AVFrame *frame)
 {
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
-    testQueue->IPolicyQueue(frame);
+    testQueue->EPolicyQueue(frame);
+    testQueue->setQueueMonitor(true);
     
     logger->tempCounterFramesIn++;
     logger->LogGraph(std::to_string(logger->tempCounterFramesIn), "framesIn");

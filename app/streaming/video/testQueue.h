@@ -27,6 +27,9 @@ class testQueue{
         static std::shared_ptr<testQueue> GetInstance(); //pointer of logger instance
         std::mutex queue_mutex;
         std::mutex sleepTime_mutex;
+        std::mutex queueMon_mutex;
+        std::mutex offset_mutex;
+        bool queueMon;
         void IPolicyQueue(AVFrame* frame);
         void EPolicyQueue(AVFrame *frame);
         milliseconds getFrameTime();
@@ -34,10 +37,15 @@ class testQueue{
         AVFrame* dequeue();
         bool dequeueing();
         bool EPolicyDequeuing();
+        bool getQueueMonitor();
+        void setQueueMonitor(bool qmIn);
         milliseconds averageInterFrameTime;
         microseconds getFrameTimeMicrosecond();
         microseconds averageInterFrameTimeMicro;
         microseconds avg;
+        int sleepOffsetVal;
+        int getSleepOffVal();
+        void adjustOffsetVal();
 
 
     private:

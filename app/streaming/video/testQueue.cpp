@@ -6,6 +6,7 @@ using Clock = steady_clock;
 using std::this_thread::sleep_for;
 
 int counter = 0; //count of frames seen
+bool queueMon = false;
 
 milliseconds renderFrameTime = milliseconds(0); //sum of interframe times (should change)
 microseconds renderFrameTimeMicro = microseconds(0); //sum of interframe times microseconds(probably should change)
@@ -20,6 +21,7 @@ milliseconds averageInterFrameTime = milliseconds(0); //average interframe time 
 microseconds averageInterFrameTimeMicro = microseconds(0); //Average interframe time of the stream
 
 microseconds avg = microseconds(16670); //Target frametime (should pick a different name)
+int sleepOffsetVal = 1220;//Starting OffsetVal
 
 
 std::shared_ptr<testQueue> testQueue::queueInstance; //singleton queue instance
@@ -41,6 +43,45 @@ void testQueue::enqueue(AVFrame *frame)
 void testQueue::queueSize()
 {
     auto logger = Logger::GetInstance();
+}
+
+
+bool testQueue::getQueueMonitor(){
+    queueMon_mutex.lock();
+    bool qm = queueMon;
+    queueMon_mutex.unlock();
+    return qm;
+}
+
+void testQueue::setQueueMonitor(bool qmIn){
+    queueMon_mutex.lock();
+    queueMon = qmIn;
+    queueMon_mutex.unlock();
+
+}
+
+//Get the current sleep offset value
+int testQueue::getSleepOffVal(){
+    offset_mutex.lock();
+    int offset = sleepOffsetVal;
+    offset_mutex.unlock();
+    return offset;
+}
+
+//adjust the sleep offset value based on queue size.
+void testQueue::adjustOffsetVal(){
+    if(getQueueSize() > 6){ // Greater than 6 speed up
+        offset_mutex.lock();
+        sleepOffsetVal+= 10;
+        offset_mutex.unlock();
+    }
+    else if (getQueueSize() < 4){ //Lower than 4 slow down
+        offset_mutex.lock();
+        sleepOffsetVal-= 10;
+        offset_mutex.unlock();
+    }
+
+
 }
 
 int testQueue::getQueueSize()
@@ -109,8 +150,6 @@ AVFrame *testQueue::dequeue()
 
     logger->Log("Dequeue Frame", LogLevel::INFO);
     logger->Log("Queue Size after dequeueing: " + std::to_string(getQueueSize()), LogLevel::INFO);
-
-
 
     return currentf;
 }
