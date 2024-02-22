@@ -520,10 +520,10 @@ void Pacer::renderFrameDequeueThread()
 
                 //Attempting to alleviate sleep_for inaccuracies
                 //sometimes produces negative values, unsure of cause
-                //sleepForDifference = realSleepTime - expectedSleepTime;
-                //if(sleepForDifference < microseconds(0)){
-                //    sleepForDifference = microseconds(0);
-                //}
+                sleepForDifference = realSleepTime - expectedSleepTime;
+                if(sleepForDifference < microseconds(0)){
+                   sleepForDifference = microseconds(0);
+                }
 
 
                 
