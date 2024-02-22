@@ -520,15 +520,15 @@ void Pacer::renderFrameDequeueThread()
 
                 //Attempting to alleviate sleep_for inaccuracies
                 //sometimes produces negative values, unsure of cause
-                sleepForDifference = realSleepTime - expectedSleepTime;
-                if(sleepForDifference < microseconds(0)){
-                   sleepForDifference = microseconds(0);
-                }
+                // sleepForDifference = realSleepTime - expectedSleepTime;
+                // if(sleepForDifference < microseconds(0)){
+                //    sleepForDifference = microseconds(0);
+                // }
 
 
                 
                 
-                //sleepForDifference = endSleepTime - beginSleepTime - average_slp - run_time;
+                sleepForDifference = endSleepTime - beginSleepTime - average_slp - run_time;
                 //logger->LogGraph(std::to_string((endSleepTime - beginSleepTime).count()), "actualSleepTime");
                 
                 
