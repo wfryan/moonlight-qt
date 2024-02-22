@@ -501,12 +501,12 @@ void Pacer::renderFrameDequeueThread()
                 //logger->LogGraph(std::to_string((average_slp  - run_time - sleepForDifference).count()), "expectedSleepTime");
                 //sleep_for(average_slp - run_time);
 
-                microseconds expectedSleepTime = (average_slp  - run_time - sleepForDifference);
+                microseconds expectedSleepTime = (average_slp  - run_time - sleepForDifference - microseconds(1220));
 
                 logger->LogGraph(std::to_string(average_slp.count()), "sleepValue");
                 logger->LogGraph(std::to_string(sleepForDifference.count()), "oversleepValue");
                 microseconds beginSleepTime = testQueue->getFrameTimeMicrosecond();
-                sleep_for(expectedSleepTime - microseconds(1220)); //need to account for sleep inaccuracies
+                sleep_for(expectedSleepTime); //need to account for sleep inaccuracies
                 microseconds endSleepTime = testQueue->getFrameTimeMicrosecond();
 
                 microseconds realSleepTime = (endSleepTime - beginSleepTime);
@@ -520,7 +520,7 @@ void Pacer::renderFrameDequeueThread()
 
                 //Attempting to alleviate sleep_for inaccuracies
                 //sometimes produces negative values, unsure of cause
-                // sleepForDifference = realSleepTime - expectedSleepTime;
+                //sleepForDifference = realSleepTime - expectedSleepTime;
                 // if(sleepForDifference < microseconds(0)){
                 //    sleepForDifference = microseconds(0);
                 // }
@@ -528,7 +528,7 @@ void Pacer::renderFrameDequeueThread()
 
                 
                 
-                sleepForDifference = endSleepTime - beginSleepTime - average_slp - run_time;
+                //sleepForDifference = endSleepTime - beginSleepTime - expectedSleepTime;
                 //logger->LogGraph(std::to_string((endSleepTime - beginSleepTime).count()), "actualSleepTime");
                 
                 
