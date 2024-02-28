@@ -520,7 +520,7 @@ void Pacer::renderFrameDequeueThread()
                 logger->LogGraph(std::to_string((average_slp).count()), "average_slp");
                 logger->LogGraph(std::to_string((run_time).count()), "run_time");
 
-                //sleepForDifference = endSleepTime - beginSleepTime - average_slp - run_time;
+                sleepForDifference = endSleepTime - beginSleepTime - average_slp - run_time;
                 
                 //frame display for 16.67 ms
                 //16.67 - run_time
