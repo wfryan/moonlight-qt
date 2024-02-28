@@ -528,7 +528,7 @@ void Pacer::renderFrameDequeueThread()
 
                 
                 
-                //sleepForDifference = endSleepTime - beginSleepTime - expectedSleepTime;
+                sleepForDifference = endSleepTime - beginSleepTime - expectedSleepTime;
                 //logger->LogGraph(std::to_string((endSleepTime - beginSleepTime).count()), "actualSleepTime");
                 
                 
