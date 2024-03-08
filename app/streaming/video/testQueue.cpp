@@ -6,7 +6,6 @@ using Clock = steady_clock;
 using std::this_thread::sleep_for;
 
 std::shared_ptr<testQueue> testQueue::queueInstance;
-bool queueMon = false;
 
 testQueue::testQueue()
 {
@@ -40,11 +39,6 @@ void testQueue::enqueue(AVFrame *frame)
     myqueue.push(frame);
     logger->Log(("Queueing Frame" + std::to_string(frame->pts)), LogLevel::INFO);
     queue_mutex.unlock();
-}
-
-void testQueue::queueSize()
-{
-    auto logger = Logger::GetInstance();
 }
 
 bool testQueue::getQueueMonitor()
