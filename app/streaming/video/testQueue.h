@@ -32,7 +32,6 @@ public:
         microseconds getSleepTimeValue();
         AVFrame *dequeue();
         bool dequeueing();
-        bool EPolicyDequeuing();
         microseconds getFrameTimeMicrosecond();
         testQueue();
         bool getQueueMonitor();

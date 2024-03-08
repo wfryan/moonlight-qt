@@ -150,10 +150,6 @@ bool testQueue::dequeueing()
     return false;
 }
 
-bool testQueue::EPolicyDequeuing()
-{
-}
-
 std::shared_ptr<testQueue> testQueue::GetInstance()
 {
     if (queueInstance == nullptr)
