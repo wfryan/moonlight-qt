@@ -5,6 +5,7 @@ using namespace std::chrono;
 using Clock = steady_clock;
 using std::this_thread::sleep_for;
 
+std::shared_ptr<testQueue> testQueue::queueInstance;
 
 testQueue::testQueue(){
 
@@ -23,7 +24,6 @@ testQueue::testQueue(){
     queueState = 0; // State 0 = queueing, State 1 = Dequeuing
     alpha = 0.9;
 
-    std::shared_ptr<testQueue> testQueue::queueInstance; //singleton queue instance
     std::queue<AVFrame *> myqueue; //actual queue
     std::mutex queue_mutex; //mutex lock
 
