@@ -9,9 +9,7 @@
 #include <thread>
 #include "decoder.h"
 #include "ffmpeg-renderers/renderer.h"
-//#include "ffmpeg-renderers/pacer/pacer.h"
 #include <libavutil/frame.h>
-// #include <unistd.h>
 
 using namespace std::chrono;
 
@@ -22,27 +20,35 @@ class testQueue{
     public:
 
         void enqueue(AVFrame* frame);
-        void queueSize();
         int getQueueSize();
         static std::shared_ptr<testQueue> GetInstance(); //pointer of logger instance
-        std::mutex queue_mutex;
-        std::mutex sleepTime_mutex;
         void IPolicyQueue(AVFrame* frame);
         void EPolicyQueue(AVFrame *frame);
-        milliseconds getFrameTime();
         microseconds getSleepTimeValue();
         AVFrame* dequeue();
         bool dequeueing();
         bool EPolicyDequeuing();
-        milliseconds averageInterFrameTime;
         microseconds getFrameTimeMicrosecond();
-        microseconds averageInterFrameTimeMicro;
-        microseconds avg;
+        testQueue();
 
 
     private:
-        std::queue<AVFrame*> myqueue; 
+        std::mutex queue_mutex;
+        std::mutex sleepTime_mutex;
+        std::queue<AVFrame*> myqueue;
         static std::shared_ptr<testQueue> queueInstance;
-        
+        microseconds averageInterFrameTimeMicro;
+        microseconds avg;
+        int counter; //count of frames seen
+
+        microseconds renderFrameTimeMicro; //sum of interframe times microseconds(probably should change)
+
+        microseconds micro_start; //program start in microsecond
+
+        microseconds lastFrameTimeMicro;
+
+        int queueState; // State 0 = queueing, State 1 = Dequeuing
+        double alpha ;
+
 
 };

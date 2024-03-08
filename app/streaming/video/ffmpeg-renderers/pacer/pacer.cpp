@@ -416,7 +416,6 @@ void Pacer::renderFrameDequeueThread()
 
             logger->tempCounterFramesOut++;
             logger->LogGraph(std::to_string(logger->tempCounterFramesOut), "framesOut");
-            
 
             logger->LogGraph(std::to_string(testQueue->getQueueSize()), "queueSize");
             Uint32 beforeRender = SDL_GetTicks();
@@ -483,23 +482,13 @@ void Pacer::renderFrameDequeueThread()
 
             //moonlight code end
 
-
             microseconds end = testQueue->getFrameTimeMicrosecond();
             microseconds run_time = (end - start);
-            
-            microseconds average_slp = testQueue->getSleepTimeValue();
 
-            logger->Log("logging sleep time" + std::to_string(average_slp.count()), LogLevel::INFO);
+            microseconds average_slp = testQueue->getSleepTimeValue();
 
             if (run_time < average_slp)
             {
-                // logger->Log("run_time:" + std::to_string(run_time.count()), LogLevel::INFO);
-                // logger->Log("fpms:" + std::to_string(fpms.count()), LogLevel::INFO);
-                // logger->Log("sleep for:" + std::to_string((fpms-run_time).count()), LogLevel::INFO);
-                // logger->Log("Sleep ", LogLevel::INFO);
-
-                //logger->LogGraph(std::to_string((average_slp  - run_time - sleepForDifference).count()), "expectedSleepTime");
-                //sleep_for(average_slp - run_time);
 
                 microseconds expectedSleepTime = (average_slp  - run_time - sleepForDifference - microseconds(1220));
 
@@ -508,39 +497,20 @@ void Pacer::renderFrameDequeueThread()
                 microseconds beginSleepTime = testQueue->getFrameTimeMicrosecond();
                 sleep_for(expectedSleepTime); //need to account for sleep inaccuracies
                 microseconds endSleepTime = testQueue->getFrameTimeMicrosecond();
-
                 microseconds realSleepTime = (endSleepTime - beginSleepTime);
-                
 
                 logger->LogGraph(std::to_string((endSleepTime - beginSleepTime).count()), "actualSleepTime");
 
                 logger->LogGraph(std::to_string((average_slp).count()), "average_slp");
                 logger->LogGraph(std::to_string((run_time).count()), "run_time");
 
-
-                //Attempting to alleviate sleep_for inaccuracies
-                //sometimes produces negative values, unsure of cause
-                //sleepForDifference = realSleepTime - expectedSleepTime;
-                // if(sleepForDifference < microseconds(0)){
-                //    sleepForDifference = microseconds(0);
-                // }
-
-
-                
-                
                 sleepForDifference = endSleepTime - beginSleepTime - expectedSleepTime;
-                //logger->LogGraph(std::to_string((endSleepTime - beginSleepTime).count()), "actualSleepTime");
-                
-                
-                //frame display for 16.67 ms
-                //16.67 - run_time
+
             } else {
                 logger->Log("sleep not necessary", LogLevel::INFO);
             }
-        } else {
-            //logger->LogGraph("Dequeue Failed", "failed_dequeue");
         }
-        
+
     }
 
 }
@@ -550,7 +520,7 @@ void Pacer::renderFrame(AVFrame *frame)
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
     testQueue->IPolicyQueue(frame);
-    
+
     logger->tempCounterFramesIn++;
     logger->LogGraph(std::to_string(logger->tempCounterFramesIn), "framesIn");
     logger->LogGraph(std::to_string(testQueue->getQueueSize()), "QueueSize");
