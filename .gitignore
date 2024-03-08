@@ -5,3 +5,4 @@ Moonlight.app
 build/
 config.tests/*/.qmake.stash
 config.tests/*/Makefile
+.vscode/settings.json
