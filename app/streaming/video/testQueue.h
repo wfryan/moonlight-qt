@@ -41,6 +41,9 @@ public:
         int getSleepOffVal();
         void adjustOffsetVal();
 
+        void setQueueType(bool queueType);
+        bool getQueueType();
+
 private:
         std::queue<AVFrame *> myqueue;
         static std::shared_ptr<testQueue> queueInstance;
@@ -56,6 +59,8 @@ private:
         microseconds micro_start; // program start in microsecond
 
         microseconds lastFrameTimeMicro;
+
+        bool queueTypeIsIPolicy;
 
         int queueState; // State 0 = queueing, State 1 = Dequeuing
         double alpha;

@@ -525,8 +525,21 @@ void Pacer::renderFrame(AVFrame *frame)
 {
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
-    testQueue->EPolicyQueue(frame);
-    testQueue->setQueueMonitor(true);
+    testQueue->setQueueType(false); // false = E Policy, true = I Policy
+    testQueue->setQueueMonitor(true); // true, queueMonitor is on, false, monitor off
+    switch(testQueue->getQueueType()){
+        case false:
+            testQueue->EPolicyQueue(frame);
+            break;
+        case true:
+            testQueue->IPolicyQueue(frame);
+            break;
+        default:
+            testQueue->EPolicyQueue(frame);
+            break;
+    }
+
+
 
     logger->tempCounterFramesIn++;
     logger->LogGraph(std::to_string(logger->tempCounterFramesIn), "framesIn");

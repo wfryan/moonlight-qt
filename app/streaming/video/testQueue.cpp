@@ -51,9 +51,24 @@ bool testQueue::getQueueMonitor()
 
 void testQueue::setQueueMonitor(bool qmIn)
 {
-    queueMon_mutex.lock();
+    queue_mutex.lock();
     queueMon = qmIn;
-    queueMon_mutex.unlock();
+    queue_mutex.unlock();
+}
+
+bool testQueue::getQueueType()
+{
+    queue_mutex.lock();
+    bool qType = queueTypeIsIPolicy;
+    queue_mutex.unlock();
+    return qType;
+}
+
+void testQueue::setQueueType(bool queueType)
+{
+    queue_mutex.lock();
+    queueTypeIsIPolicy = queueType;
+    queue_mutex.unlock();
 }
 
 // Get the current sleep offset value
@@ -93,40 +108,50 @@ int testQueue::getQueueSize()
 bool testQueue::dequeueing()
 {
     auto logger = Logger::GetInstance();
-    switch (queueState)
+    if (queueTypeIsIPolicy)
     {
-    case 0:
-        // note: this actually sets the size of the queue
-        if (getQueueSize() == 5)
+        switch (queueState)
         {
-            queueState = 1;
+        case 0:
+            // note: this actually sets the size of the queue
+            if (getQueueSize() == 5)
+            {
+                queueState = 1;
+                return true;
+            }
+
+            return false;
+            break;
+        case 1:
+            // logger->Log("Case 1", LogLevel::INFO);
+            if (getQueueSize() == 0)
+            {
+                return false;
+            }
+
+            return true;
+            break;
+        default:
+            return false;
+            break;
+        }
+    }
+    else
+    {
+        if (getQueueSize() > 0)
+        {
             return true;
         }
-        return false;
-        break;
-    case 1:
-        // logger->Log("Case 1", LogLevel::INFO);
-        if (getQueueSize() == 0)
+        else
         {
             return false;
         }
-
-        return true;
-        break;
     }
     return false;
 }
 
 bool testQueue::EPolicyDequeuing()
 {
-    if (getQueueSize() > 0)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
 }
 
 std::shared_ptr<testQueue> testQueue::GetInstance()
@@ -166,6 +191,7 @@ microseconds testQueue::getSleepTimeValue()
 
 void testQueue::IPolicyQueue(AVFrame *frame)
 {
+    queueTypeIsIPolicy = true;
     auto logger = Logger::GetInstance();
     microseconds timeArrivedMicro = getFrameTimeMicrosecond();
     microseconds interFrameTimeMicro = timeArrivedMicro - lastFrameTimeMicro;
@@ -219,6 +245,7 @@ microseconds testQueue::getFrameTimeMicrosecond()
 
 void testQueue::EPolicyQueue(AVFrame *frame)
 {
+    queueTypeIsIPolicy = false;
     auto logger = Logger::GetInstance();
     microseconds timeArrivedMicro = getFrameTimeMicrosecond();
     microseconds interFrameTimeMicro = timeArrivedMicro - lastFrameTimeMicro; // time between frames for our calculations
