@@ -47,7 +47,7 @@ Pacer::Pacer(IFFmpegRenderer *renderer, PVIDEO_STATS videoStats) : m_RenderThrea
 {
 }
 
-microseconds lastFrameTimeDequeueMicro = microseconds::zero(); //Time of last frame arrival in micro seconds
+microseconds lastFrameTimeDequeueMicro = microseconds::zero(); // Time of last frame arrival in micro seconds
 
 Pacer::~Pacer()
 {
@@ -369,7 +369,7 @@ bool Pacer::initialize(SDL_Window *window, int maxVideoFps, bool enablePacing)
         m_RenderThread = SDL_CreateThread(Pacer::renderThread, "PacerRender", this);
     }
 
-    //creation of queue Thread
+    // creation of queue Thread
     if (!queueThreadMade)
     {
 
@@ -386,7 +386,7 @@ void Pacer::signalVsync()
     m_VsyncSignalled.wakeOne();
 }
 
-//ThreadProc function
+// ThreadProc function
 int Pacer::renderFrameDequeueThreadProc(void *context)
 {
     Pacer *me = reinterpret_cast<Pacer *>(context);
@@ -394,7 +394,7 @@ int Pacer::renderFrameDequeueThreadProc(void *context)
     return 0;
 }
 
-//Dequeue Function
+// Dequeue Function
 void Pacer::renderFrameDequeueThread()
 {
     auto logger = Logger::GetInstance();
@@ -402,12 +402,12 @@ void Pacer::renderFrameDequeueThread()
     logger->Log("Render Frame function called", LogLevel::INFO);
     while (true)
     {
-        //if testQueue is in the dequeueing phase
+        // if testQueue is in the dequeueing phase
         if (testQueue->dequeueing())
         {
             microseconds start = testQueue->getFrameTimeMicrosecond();
-            //microseconds fpms = testQueue->averageInterFrameTimeMicro;
-            // note: value of 20 currently has no effect, set by dequeuing variable
+            // microseconds fpms = testQueue->averageInterFrameTimeMicro;
+            //  note: value of 20 currently has no effect, set by dequeuing variable
             AVFrame *framede = testQueue->dequeue();
 
             logger->LogGraph(std::to_string((start - lastFrameTimeDequeueMicro).count()), "interFrameTimeDequeue");
@@ -480,7 +480,7 @@ void Pacer::renderFrameDequeueThread()
 
             m_FrameQueueLock.unlock();
 
-            //moonlight code end
+            // moonlight code end
 
             microseconds end = testQueue->getFrameTimeMicrosecond();
             microseconds run_time = (end - start);
@@ -490,12 +490,19 @@ void Pacer::renderFrameDequeueThread()
             if (run_time < average_slp)
             {
 
-                microseconds expectedSleepTime = (average_slp  - run_time - sleepForDifference - microseconds(1220));
+                // logger->LogGraph(std::to_string((average_slp  - run_time - sleepForDifference).count()), "expectedSleepTime");
+                // sleep_for(average_slp - run_time);
+                if (testQueue->getQueueMonitor())
+                {
+                    testQueue->adjustOffsetVal();
+                }
+                int sleepOffset = testQueue->getSleepOffVal();
+                microseconds expectedSleepTime = (average_slp - run_time - sleepForDifference - microseconds(sleepOffset));
 
                 logger->LogGraph(std::to_string(average_slp.count()), "sleepValue");
                 logger->LogGraph(std::to_string(sleepForDifference.count()), "oversleepValue");
                 microseconds beginSleepTime = testQueue->getFrameTimeMicrosecond();
-                sleep_for(expectedSleepTime); //need to account for sleep inaccuracies
+                sleep_for(expectedSleepTime); // need to account for sleep inaccuracies
                 microseconds endSleepTime = testQueue->getFrameTimeMicrosecond();
                 microseconds realSleepTime = (endSleepTime - beginSleepTime);
 
@@ -505,21 +512,21 @@ void Pacer::renderFrameDequeueThread()
                 logger->LogGraph(std::to_string((run_time).count()), "run_time");
 
                 sleepForDifference = endSleepTime - beginSleepTime - expectedSleepTime;
-
-            } else {
+            }
+            else
+            {
                 logger->Log("sleep not necessary", LogLevel::INFO);
             }
         }
-
     }
-
 }
 
 void Pacer::renderFrame(AVFrame *frame)
 {
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
-    testQueue->IPolicyQueue(frame);
+    testQueue->EPolicyQueue(frame);
+    testQueue->setQueueMonitor(true);
 
     logger->tempCounterFramesIn++;
     logger->LogGraph(std::to_string(logger->tempCounterFramesIn), "framesIn");

@@ -6,29 +6,32 @@ using Clock = steady_clock;
 using std::this_thread::sleep_for;
 
 std::shared_ptr<testQueue> testQueue::queueInstance;
+bool queueMon = false;
 
-testQueue::testQueue(){
+testQueue::testQueue()
+{
 
-    counter = 0; //count of frames seen
+    counter = 0; // count of frames seen
 
-    renderFrameTimeMicro = microseconds(0); //sum of interframe times microseconds(probably should change)
+    renderFrameTimeMicro = microseconds(0); // sum of interframe times microseconds(probably should change)
 
-    micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch()); //program start in microsecond
+    micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch()); // program start in microsecond
 
-    lastFrameTimeMicro = microseconds::zero(); //Time of last frame arrival in micro seconds
+    lastFrameTimeMicro = microseconds::zero(); // Time of last frame arrival in micro seconds
+    sleepOffsetVal = 1220;                     // Starting OffsetVal
 
-    averageInterFrameTimeMicro = microseconds(0); //Average interframe time of the stream
+    averageInterFrameTimeMicro = microseconds(0); // Average interframe time of the stream
 
-    avg = microseconds(16670); //Target frametime (should pick a different name)
+    avg = microseconds(16670); // Target frametime (should pick a different name)
 
     queueState = 0; // State 0 = queueing, State 1 = Dequeuing
     alpha = 0.9;
 
-    std::queue<AVFrame *> myqueue; //actual queue
-    std::mutex queue_mutex; //mutex lock
+    queueMon = false;
 
+    std::queue<AVFrame *> myqueue; // actual queue
+    std::mutex queue_mutex;        // mutex lock
 }
-
 
 void testQueue::enqueue(AVFrame *frame)
 {
@@ -37,6 +40,52 @@ void testQueue::enqueue(AVFrame *frame)
     myqueue.push(frame);
     logger->Log(("Queueing Frame" + std::to_string(frame->pts)), LogLevel::INFO);
     queue_mutex.unlock();
+}
+
+void testQueue::queueSize()
+{
+    auto logger = Logger::GetInstance();
+}
+
+bool testQueue::getQueueMonitor()
+{
+    queueMon_mutex.lock();
+    bool qm = queueMon;
+    queueMon_mutex.unlock();
+    return qm;
+}
+
+void testQueue::setQueueMonitor(bool qmIn)
+{
+    queueMon_mutex.lock();
+    queueMon = qmIn;
+    queueMon_mutex.unlock();
+}
+
+// Get the current sleep offset value
+int testQueue::getSleepOffVal()
+{
+    offset_mutex.lock();
+    int offset = sleepOffsetVal;
+    offset_mutex.unlock();
+    return offset;
+}
+
+// adjust the sleep offset value based on queue size.
+void testQueue::adjustOffsetVal()
+{
+    if (getQueueSize() > 6)
+    { // Greater than 6 speed up
+        offset_mutex.lock();
+        sleepOffsetVal += 10;
+        offset_mutex.unlock();
+    }
+    else if (getQueueSize() < 4)
+    { // Lower than 4 slow down
+        offset_mutex.lock();
+        sleepOffsetVal -= 10;
+        offset_mutex.unlock();
+    }
 }
 
 int testQueue::getQueueSize()
@@ -74,11 +123,14 @@ bool testQueue::dequeueing()
     return false;
 }
 
-bool testQueue::EPolicyDequeuing(){
+bool testQueue::EPolicyDequeuing()
+{
     if (getQueueSize() > 0)
     {
         return true;
-    } else {
+    }
+    else
+    {
         return false;
     }
 }
@@ -109,14 +161,13 @@ AVFrame *testQueue::dequeue()
     return currentf;
 }
 
-microseconds testQueue::getSleepTimeValue(){
+microseconds testQueue::getSleepTimeValue()
+{
     microseconds tempSleepTimeVal;
     sleepTime_mutex.lock();
     tempSleepTimeVal = avg;
     sleepTime_mutex.unlock();
     return tempSleepTimeVal;
-
-
 }
 
 void testQueue::IPolicyQueue(AVFrame *frame)
@@ -136,30 +187,31 @@ void testQueue::IPolicyQueue(AVFrame *frame)
         av_frame_free(&frame);
 
         lastFrameTimeMicro = timeArrivedMicro;
-        counter++; //count of frames
+        counter++; // count of frames
 
-        if(counter > 1){
+        if (counter > 1)
+        {
             renderFrameTimeMicro += interFrameTimeMicro;
             avg = duration_cast<microseconds>((avg * 0.99) + (1 - 0.99) * interFrameTimeMicro);
         }
     }
     else
     {
-        queue_mutex.lock(); //LOCKING SELF
+        queue_mutex.lock(); // LOCKING SELF
         myqueue.push(frame);
-        counter++; //count of frames
+        counter++; // count of frames
 
-        if(counter > 1){
+        if (counter > 1)
+        {
             renderFrameTimeMicro += interFrameTimeMicro;
-            avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * interFrameTimeMicro); //adjust the target frame time based on the current interframe time
+            avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * interFrameTimeMicro); // adjust the target frame time based on the current interframe time
         }
 
         lastFrameTimeMicro = timeArrivedMicro;
 
-        queue_mutex.unlock(); //UNLOCKING SELF
+        queue_mutex.unlock(); // UNLOCKING SELF
 
         logger->LogGraph(std::to_string(getQueueSize()), "queueSize");
-
     }
 }
 
@@ -171,34 +223,33 @@ microseconds testQueue::getFrameTimeMicrosecond()
     return timems;
 }
 
-
 void testQueue::EPolicyQueue(AVFrame *frame)
 {
     auto logger = Logger::GetInstance();
     microseconds timeArrivedMicro = getFrameTimeMicrosecond();
-    microseconds interFrameTimeMicro = timeArrivedMicro - lastFrameTimeMicro; //time between frames for our calculations
+    microseconds interFrameTimeMicro = timeArrivedMicro - lastFrameTimeMicro; // time between frames for our calculations
 
-    queue_mutex.lock(); //LOCKING SELF
+    queue_mutex.lock(); // LOCKING SELF
     myqueue.push(frame);
     queue_mutex.unlock();
 
-
     sleepTime_mutex.lock();
 
-    if(counter == 1){
+    if (counter == 1)
+    {
         avg = interFrameTimeMicro;
-    }else if(counter > 2){
-        avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * interFrameTimeMicro); //adjust the target interframe time based on the current interframe time
     }
-
+    else if (counter > 2)
+    {
+        avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * interFrameTimeMicro); // adjust the target interframe time based on the current interframe time
+    }
 
     sleepTime_mutex.unlock();
     logger->LogGraph(std::to_string(interFrameTimeMicro.count()), "interFrameTimeEnqueue");
-    //setting previous frame time of arrival
+    // setting previous frame time of arrival
     lastFrameTimeMicro = timeArrivedMicro;
 
     counter++;
 
     logger->LogGraph(std::to_string(getQueueSize()), "queueSize");
-
 }

@@ -13,42 +13,50 @@
 
 using namespace std::chrono;
 
+class testQueue
+{
 
-
-class testQueue{
-
-    public:
-
-        void enqueue(AVFrame* frame);
+public:
+        void enqueue(AVFrame *frame);
         int getQueueSize();
-        static std::shared_ptr<testQueue> GetInstance(); //pointer of logger instance
-        void IPolicyQueue(AVFrame* frame);
+        static std::shared_ptr<testQueue> GetInstance(); // pointer of logger instance
+
+        // should these be public or private?
+        std::mutex queue_mutex;
+        std::mutex sleepTime_mutex;
+        std::mutex queueMon_mutex;
+        std::mutex offset_mutex;
+
+        void IPolicyQueue(AVFrame *frame);
         void EPolicyQueue(AVFrame *frame);
         microseconds getSleepTimeValue();
-        AVFrame* dequeue();
+        AVFrame *dequeue();
         bool dequeueing();
         bool EPolicyDequeuing();
         microseconds getFrameTimeMicrosecond();
         testQueue();
+        bool getQueueMonitor();
+        void setQueueMonitor(bool qmIn);
 
+        int getSleepOffVal();
+        void adjustOffsetVal();
 
-    private:
-        std::mutex queue_mutex;
-        std::mutex sleepTime_mutex;
-        std::queue<AVFrame*> myqueue;
+private:
+        std::queue<AVFrame *> myqueue;
         static std::shared_ptr<testQueue> queueInstance;
         microseconds averageInterFrameTimeMicro;
         microseconds avg;
-        int counter; //count of frames seen
+        int counter; // count of frames seen
 
-        microseconds renderFrameTimeMicro; //sum of interframe times microseconds(probably should change)
+        bool queueMon;
+        int sleepOffsetVal;
 
-        microseconds micro_start; //program start in microsecond
+        microseconds renderFrameTimeMicro; // sum of interframe times microseconds(probably should change)
+
+        microseconds micro_start; // program start in microsecond
 
         microseconds lastFrameTimeMicro;
 
         int queueState; // State 0 = queueing, State 1 = Dequeuing
-        double alpha ;
-
-
+        double alpha;
 };
