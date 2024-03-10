@@ -17,7 +17,8 @@ testQueue::testQueue()
     micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch()); // program start in microsecond
 
     lastFrameTimeMicro = microseconds::zero(); // Time of last frame arrival in micro seconds
-    sleepOffsetVal = 1220;                     // Starting OffsetVal
+    sleepOffsetVal = 1220;
+    queueMonTarget = 0;                     // Starting OffsetVal
 
     averageInterFrameTimeMicro = microseconds(0); // Average interframe time of the stream
 
@@ -49,11 +50,12 @@ bool testQueue::getQueueMonitor()
     return qm;
 }
 
-void testQueue::setQueueMonitor(bool qmIn)
+void testQueue::setQueueMonitor(bool qmIn, int target)
 {
-    queue_mutex.lock();
+    queueMon_mutex.lock();
     queueMon = qmIn;
-    queue_mutex.unlock();
+    queueMonTarget = target;
+    queueMon_mutex.unlock();
 }
 
 bool testQueue::getQueueType()
@@ -83,16 +85,17 @@ int testQueue::getSleepOffVal()
 // adjust the sleep offset value based on queue size.
 void testQueue::adjustOffsetVal()
 {
-    if (getQueueSize() > 6)
+    int queueLength = getQueueSize();
+    if (queueLength > queueMonTarget)
     { // Greater than 6 speed up
         offset_mutex.lock();
-        sleepOffsetVal += 10;
+        sleepOffsetVal += (queueLength - queueMonTarget ) * 10;
         offset_mutex.unlock();
     }
-    else if (getQueueSize() < 4)
+    else if (queueLength < queueMonTarget)
     { // Lower than 4 slow down
         offset_mutex.lock();
-        sleepOffsetVal -= 10;
+        sleepOffsetVal -= (queueMonTarget - queueLength ) * 10;
         offset_mutex.unlock();
     }
 }

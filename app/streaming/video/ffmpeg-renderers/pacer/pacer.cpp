@@ -526,7 +526,7 @@ void Pacer::renderFrame(AVFrame *frame)
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
     testQueue->setQueueType(false); // false = E Policy, true = I Policy
-    testQueue->setQueueMonitor(true); // true, queueMonitor is on, false, monitor off
+    testQueue->setQueueMonitor(true, 3); // true, queueMonitor is on, false, monitor off, int is buffer target size
     switch(testQueue->getQueueType()){
         case false:
             testQueue->EPolicyQueue(frame);
