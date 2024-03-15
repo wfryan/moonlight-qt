@@ -231,20 +231,20 @@ void testQueue::IPolicyQueue(AVFrame *frame)
     }
 }
 
-microseconds testQueue::getFrameTimeMicrosecond()
+microseconds testQueue::getFrameTimeMicrosecond() // rename function, getElapsedTime, getTime, etc.
 {
     using namespace std::chrono;
-    microseconds ms = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+    microseconds ms = duration_cast<microseconds>(system_clock::now().time_since_epoch()); // ms is ambiguous, use microseconds
     microseconds timems = ms - micro_start;
     return timems;
 }
 
 void testQueue::EPolicyQueue(AVFrame *frame)
 {
-    queueTypeIsIPolicy = false;
+    queueTypeIsIPolicy = false; // will remove
     auto logger = Logger::GetInstance();
     microseconds timeArrivedMicro = getFrameTimeMicrosecond();
-    microseconds interFrameTimeMicro = timeArrivedMicro - lastFrameTimeMicro; // time between frames for our calculations
+    microseconds interFrameTimeMicro = timeArrivedMicro - lastFrameTimeMicro; // time between frames for our calculations (maybe remove 'inter')
 
     queue_mutex.lock(); // LOCKING SELF
     myqueue.push(frame);
@@ -252,6 +252,7 @@ void testQueue::EPolicyQueue(AVFrame *frame)
 
     sleepTime_mutex.lock();
 
+    // can probably remove this counter logic
     if (counter == 1)
     {
         avg = interFrameTimeMicro;
@@ -259,14 +260,14 @@ void testQueue::EPolicyQueue(AVFrame *frame)
     else if (counter > 2)
     {
         avg = duration_cast<microseconds>((avg * 0.95) + (1 - 0.95) * interFrameTimeMicro); // adjust the target interframe time based on the current interframe time
-    }
+    }                                                                                       // make alpha a parameter (0.95)
 
     sleepTime_mutex.unlock();
     logger->LogGraph(std::to_string(interFrameTimeMicro.count()), "interFrameTimeEnqueue");
     // setting previous frame time of arrival
     lastFrameTimeMicro = timeArrivedMicro;
 
-    counter++;
+    counter++; // may be needed for logging
 
     logger->LogGraph(std::to_string(getQueueSize()), "queueSize");
 }

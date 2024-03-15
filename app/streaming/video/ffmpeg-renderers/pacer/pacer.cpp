@@ -403,13 +403,14 @@ void Pacer::renderFrameDequeueThread()
     while (true)
     {
         // if testQueue is in the dequeueing phase
-        if (testQueue->dequeueing())
+        if (testQueue->dequeueing()) // fix
         {
             microseconds start = testQueue->getFrameTimeMicrosecond();
             // microseconds fpms = testQueue->averageInterFrameTimeMicro;
             //  note: value of 20 currently has no effect, set by dequeuing variable
             AVFrame *framede = testQueue->dequeue();
 
+            // parse for unecessary log statements
             logger->LogGraph(std::to_string((start - lastFrameTimeDequeueMicro).count()), "interFrameTimeDequeue");
 
             lastFrameTimeDequeueMicro = testQueue->getFrameTimeMicrosecond();
@@ -418,6 +419,8 @@ void Pacer::renderFrameDequeueThread()
             logger->LogGraph(std::to_string(logger->tempCounterFramesOut), "framesOut");
 
             logger->LogGraph(std::to_string(testQueue->getQueueSize()), "queueSize");
+
+            /*****************************************Pre-existing Code (bar logging messages) ***********************************/ // put in other places
             Uint32 beforeRender = SDL_GetTicks();
             logger->Log("Time before render " + std::to_string(beforeRender) + " Frame pkt " + std::to_string(framede->pkt_dts), LogLevel::INFO);
             m_VideoStats->totalPacerTime += beforeRender - framede->pkt_dts;
@@ -473,7 +476,7 @@ void Pacer::renderFrameDequeueThread()
 
                 // Drop the lock while we call av_frame_free()
                 m_FrameQueueLock.unlock();
-                m_VideoStats->pacerDroppedFrames++;
+                m_VideoStats->pacerDroppedFrames++; // take a look at this
                 av_frame_free(&framede);
                 m_FrameQueueLock.lock();
             }
@@ -525,21 +528,23 @@ void Pacer::renderFrame(AVFrame *frame)
 {
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
-    testQueue->setQueueType(false); // false = E Policy, true = I Policy
+    testQueue->setQueueType(false);   // false = E Policy, true = I Policy //make getQueueType Enumerated Type
     testQueue->setQueueMonitor(true); // true, queueMonitor is on, false, monitor off
-    switch(testQueue->getQueueType()){
-        case false:
-            testQueue->EPolicyQueue(frame);
-            break;
-        case true:
-            testQueue->IPolicyQueue(frame);
-            break;
-        default:
-            testQueue->EPolicyQueue(frame);
-            break;
+    // Initial buffer for I/E policy
+    // Fudge Factor
+    // Initial Value for moving average (60hz)
+    switch (testQueue->getQueueType())
+    {
+    case false:
+        testQueue->EPolicyQueue(frame);
+        break;
+    case true:
+        testQueue->IPolicyQueue(frame);
+        break;
+    default:
+        testQueue->EPolicyQueue(frame);
+        break;
     }
-
-
 
     logger->tempCounterFramesIn++;
     logger->LogGraph(std::to_string(logger->tempCounterFramesIn), "framesIn");
