@@ -39,7 +39,7 @@ public:
         microseconds getFrameTimeMicrosecond();
 
         bool getQueueMonitor();
-        void setQueueMonitor(bool qmIn);
+        void setQueueMonitor(bool qmIn, int target);
 
         int getSleepOffVal();
         void adjustOffsetVal();
@@ -60,6 +60,7 @@ private:
 
         bool queueMon;      // whether queue monitoring is on/off
         int sleepOffsetVal; // current sleep offset from Queue Monitoring
+        int queueMonTarget;
 
         microseconds renderFrameTimeMicro; // sum of interframe times microseconds(probably should change)
 
