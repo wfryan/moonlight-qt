@@ -38,14 +38,16 @@ public:
         bool dequeueing();
         microseconds getFrameTimeMicrosecond();
 
+        enum Policies{IPolicy, EPolicy};
+
         bool getQueueMonitor();
         void setQueueMonitor(bool qmIn, int target);
 
         int getSleepOffVal();
         void adjustOffsetVal();
 
-        void setQueueType(bool queueType);
-        bool getQueueType();
+        void setQueueType(Policies queueType);
+        Policies getQueueType();
 
 private:
         // Organize/cluster based on connected Ideas
@@ -68,7 +70,7 @@ private:
 
         microseconds lastFrameTimeMicro;
 
-        bool queueTypeIsIPolicy;
+        Policies policy;
 
         int queueState; // State 0 = queueing, State 1 = Dequeuing
         double alpha;

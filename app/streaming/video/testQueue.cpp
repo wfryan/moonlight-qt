@@ -18,7 +18,7 @@ testQueue::testQueue()
 
     lastFrameTimeMicro = microseconds::zero(); // Time of last frame arrival in micro seconds
     sleepOffsetVal = 1220;
-    queueMonTarget = 0;                     // Starting OffsetVal
+    queueMonTarget = 0; // Starting OffsetVal
 
     averageInterFrameTimeMicro = microseconds(0); // Average interframe time of the stream
 
@@ -58,18 +58,18 @@ void testQueue::setQueueMonitor(bool qmIn, int target)
     queueMon_mutex.unlock();
 }
 
-bool testQueue::getQueueType()
+testQueue::testQueue::Policies testQueue::getQueueType()
 {
     queue_mutex.lock();
-    bool qType = queueTypeIsIPolicy;
+    testQueue::Policies qType = policy;
     queue_mutex.unlock();
     return qType;
 }
 
-void testQueue::setQueueType(bool queueType)
+void testQueue::setQueueType(testQueue::Policies queueType)
 {
     queue_mutex.lock();
-    queueTypeIsIPolicy = queueType;
+    policy = queueType;
     queue_mutex.unlock();
 }
 
@@ -89,13 +89,13 @@ void testQueue::adjustOffsetVal()
     if (queueLength > queueMonTarget)
     { // Greater than 6 speed up
         offset_mutex.lock();
-        sleepOffsetVal += (queueLength - queueMonTarget ) * 10;
+        sleepOffsetVal += (queueLength - queueMonTarget) * 10;
         offset_mutex.unlock();
     }
     else if (queueLength < queueMonTarget)
     { // Lower than 4 slow down
         offset_mutex.lock();
-        sleepOffsetVal -= (queueMonTarget - queueLength ) * 10;
+        sleepOffsetVal -= (queueMonTarget - queueLength) * 10;
         offset_mutex.unlock();
     }
 }
@@ -111,7 +111,9 @@ int testQueue::getQueueSize()
 bool testQueue::dequeueing()
 {
     auto logger = Logger::GetInstance();
-    if (queueTypeIsIPolicy)
+    switch (policy)
+    {
+    case IPolicy:
     {
         switch (queueState)
         {
@@ -138,8 +140,9 @@ bool testQueue::dequeueing()
             return false;
             break;
         }
+        break;
     }
-    else
+    case EPolicy:
     {
         if (getQueueSize() > 0)
         {
@@ -150,7 +153,11 @@ bool testQueue::dequeueing()
             return false;
         }
     }
-    return false;
+    default:
+    {
+        return false;
+    }
+    }
 }
 
 std::shared_ptr<testQueue> testQueue::GetInstance()
@@ -190,7 +197,6 @@ microseconds testQueue::getSleepTimeValue()
 
 void testQueue::IPolicyQueue(AVFrame *frame)
 {
-    queueTypeIsIPolicy = true;
     auto logger = Logger::GetInstance();
     microseconds timeArrivedMicro = getFrameTimeMicrosecond();
     microseconds interFrameTimeMicro = timeArrivedMicro - lastFrameTimeMicro;
@@ -244,7 +250,6 @@ microseconds testQueue::getFrameTimeMicrosecond() // rename function, getElapsed
 
 void testQueue::EPolicyQueue(AVFrame *frame)
 {
-    queueTypeIsIPolicy = false; // will remove
     auto logger = Logger::GetInstance();
     microseconds timeArrivedMicro = getFrameTimeMicrosecond();
     microseconds interFrameTimeMicro = timeArrivedMicro - lastFrameTimeMicro; // time between frames for our calculations (maybe remove 'inter')
