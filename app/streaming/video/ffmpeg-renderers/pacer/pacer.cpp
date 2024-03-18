@@ -528,7 +528,7 @@ void Pacer::renderFrame(AVFrame *frame)
 {
     auto logger = Logger::GetInstance();
     auto testQueue = testQueue::GetInstance();
-    testQueue->setQueueType(testQueue::EPolicy);      // false = E Policy, true = I Policy
+    testQueue->setQueueType(testQueue::EPolicy);      // EPolicy, IPolicy
     testQueue->setQueueMonitor(true, 3); // true, queueMonitor is on, false, monitor off, int is buffer target size
     // Initial buffer for I/E policy
     // Fudge Factor

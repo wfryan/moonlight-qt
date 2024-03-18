@@ -38,7 +38,7 @@ public:
         bool dequeueing();
         microseconds getFrameTimeMicrosecond();
 
-        enum Policies{IPolicy, EPolicy};
+        enum Policies{IPolicy, EPolicy}; //Queue policies. this simplifies identifying queue type
 
         bool getQueueMonitor();
         void setQueueMonitor(bool qmIn, int target);
