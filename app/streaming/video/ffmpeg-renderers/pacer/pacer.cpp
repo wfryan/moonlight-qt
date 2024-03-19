@@ -488,7 +488,9 @@ void Pacer::renderFrameDequeueThread()
             microseconds end = testQueue->getFrameTimeMicrosecond();
             microseconds run_time = (end - start);
 
-            microseconds average_slp = testQueue->getSleepTimeValue();
+            microseconds average_slp = testQueue->getSleepTimeValue(); //rename the varialbe here to averageFrameTime
+
+            // qmon adjustment should probably go here
 
             if (run_time < average_slp)
             {
@@ -519,8 +521,12 @@ void Pacer::renderFrameDequeueThread()
             else
             {
                 logger->Log("sleep not necessary", LogLevel::INFO);
+                // reset sleepForDifference to 0 here
             }
         }
+            // add a small sleep if we are not in dequeue state, 0.5ms
+            // enter fill state here again
+            // readjust / refill parameter
     }
 }
 

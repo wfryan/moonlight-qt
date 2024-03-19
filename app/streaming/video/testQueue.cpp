@@ -83,17 +83,18 @@ int testQueue::getSleepOffVal()
 }
 
 // adjust the sleep offset value based on queue size.
+// set the variable back down immediately in next iteration
 void testQueue::adjustOffsetVal()
 {
     int queueLength = getQueueSize();
     if (queueLength > queueMonTarget)
-    { // Greater than 6 speed up
-        offset_mutex.lock();
+    { 
+        offset_mutex.lock(); // can take out the lock
         sleepOffsetVal += (queueLength - queueMonTarget) * 10;
         offset_mutex.unlock();
     }
     else if (queueLength < queueMonTarget)
-    { // Lower than 4 slow down
+    {
         offset_mutex.lock();
         sleepOffsetVal -= (queueMonTarget - queueLength) * 10;
         offset_mutex.unlock();
@@ -108,6 +109,7 @@ int testQueue::getQueueSize()
     return size;
 }
 
+// enum the states
 bool testQueue::dequeueing()
 {
     auto logger = Logger::GetInstance();
@@ -210,12 +212,14 @@ void testQueue::IPolicyQueue(AVFrame *frame)
     {
         logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
         av_frame_free(&frame);
+        // log how late the frame was 
 
         lastFrameTimeMicro = timeArrivedMicro;
         counter++; // count of frames
 
         if (counter > 1)
         {
+            // add lock here
             renderFrameTimeMicro += interFrameTimeMicro;
             avg = duration_cast<microseconds>((avg * 0.99) + (1 - 0.99) * interFrameTimeMicro);
         }
