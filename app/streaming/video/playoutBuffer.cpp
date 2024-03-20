@@ -83,11 +83,14 @@ void playoutBuffer::adjustOffsetVal()
     offset_mutex.lock(); // may need mutex because getSleepOffVal() and adjust OffsetVal() are called many times
     if (queueLength > m_queue_monitor_target)
     {
-        m_sleep_offset_val = m_constant_sleep_offset + (queueLength - m_queue_monitor_target) * 100;
+        m_sleep_offset_val = m_constant_sleep_offset + (queueLength - m_queue_monitor_target) * 15;
     }
     else if (queueLength < m_queue_monitor_target)
     {
-        m_sleep_offset_val = m_constant_sleep_offset - (m_queue_monitor_target - queueLength) * 100;
+        m_sleep_offset_val = m_constant_sleep_offset - (m_queue_monitor_target - queueLength) * 15;
+    }
+    else{
+        m_sleep_offset_val = m_constant_sleep_offset;
     }
     offset_mutex.unlock();
 }
