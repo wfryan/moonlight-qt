@@ -15,7 +15,6 @@ playoutBuffer::playoutBuffer()
     std::queue<AVFrame *> m_buffer_queue; // buffer queue of frames
 
     // frametime/frame counter variables
-    m_frame_time_average = microseconds(0); // Average interframe time of the stream
     m_frame_counter = 0;                    // count of frames seen
     m_frame_time_sum = microseconds(0);     // sum of interframe times microseconds
 
@@ -29,8 +28,8 @@ playoutBuffer::playoutBuffer()
     micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch()); // program start in microseconds
 
     // policy specific variables
-    m_average_frametime = microseconds(16670); // Target frametime (old avg)
-    m_alpha = 0.9;                             // alpha value in sleep time calculations
+    m_average_frametime = microseconds(8000); // Target frametime (old avg)
+    m_alpha = 0.95;                             // alpha value in sleep time calculations
     m_queue_limit = 2;
     m_queue_monitor_on = false;
     m_queue_state = Filling;
@@ -84,11 +83,11 @@ void playoutBuffer::adjustOffsetVal()
     offset_mutex.lock(); // may need mutex because getSleepOffVal() and adjust OffsetVal() are called many times
     if (queueLength > m_queue_monitor_target)
     {
-        m_sleep_offset_val = m_constant_sleep_offset + (queueLength - m_queue_monitor_target) * 10;
+        m_sleep_offset_val = m_constant_sleep_offset + (queueLength - m_queue_monitor_target) * 100;
     }
     else if (queueLength < m_queue_monitor_target)
     {
-        m_sleep_offset_val = m_constant_sleep_offset - (m_queue_monitor_target - queueLength) * 10;
+        m_sleep_offset_val = m_constant_sleep_offset - (m_queue_monitor_target - queueLength) * 100;
     }
     offset_mutex.unlock();
 }
@@ -191,12 +190,13 @@ void playoutBuffer::enqueueIPolicy(AVFrame *frame)
     microseconds time_arrived = getElapsedTime();
     microseconds time_between_frames = time_arrived - m_last_frame_arrived_time;
 
-    if (m_frame_counter >= 4)
+    if (m_frame_counter > 1)
     {
-        m_frame_time_average = m_frame_time_sum / m_frame_counter;
+        m_frame_time_sum += time_between_frames;
+        m_average_frametime = duration_cast<microseconds>((m_average_frametime * m_alpha) + (1 - m_alpha) * time_between_frames); // adjust the target frame time based on the current interframe time
     }
 
-    if (time_between_frames > (m_average_frametime + m_frame_time_average) && frame->key_frame == 0 && m_queue_state == Draining)
+    if (time_between_frames > (m_average_frametime * 2) && frame->key_frame == 0 && m_queue_state == Draining)
     {
         logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
         av_frame_free(&frame);
@@ -208,11 +208,6 @@ void playoutBuffer::enqueueIPolicy(AVFrame *frame)
         m_frame_counter++; // count of frames
     }
 
-    if (m_frame_counter > 1)
-    {
-        m_frame_time_sum += time_between_frames;
-        m_average_frametime = duration_cast<microseconds>((m_average_frametime * m_alpha) + (1 - m_alpha) * time_between_frames); // adjust the target frame time based on the current interframe time
-    }
 
     m_last_frame_arrived_time = time_arrived;
 
@@ -242,14 +237,8 @@ void playoutBuffer::enqueueEPolicy(AVFrame *frame)
     sleepTime_mutex.lock();
 
     // can probably remove this m_frame_counter logic
-    if (m_frame_counter == 1)
-    {
-        m_average_frametime = time_between_frames;
-    }
-    else if (m_frame_counter > 2)
-    {
-        m_average_frametime = duration_cast<microseconds>((m_average_frametime * m_alpha) + (1 - m_alpha) * time_between_frames); // adjust the target interframe time based on the current interframe time
-    }
+
+    m_average_frametime = duration_cast<microseconds>((m_average_frametime * m_alpha) + (1 - m_alpha) * time_between_frames); // adjust the target interframe time based on the current interframe time
 
     sleepTime_mutex.unlock();
     logger->LogGraph(std::to_string(time_between_frames.count()), "interFrameTimeEnqueue");

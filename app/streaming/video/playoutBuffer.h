@@ -58,7 +58,6 @@ private:
         static std::shared_ptr<playoutBuffer> queueInstance;
 
         // frametime/frame counter variables
-        microseconds m_frame_time_average;
         int m_frame_counter;           // count of frames seen
         microseconds m_frame_time_sum; // sum of interframe times microseconds
 
