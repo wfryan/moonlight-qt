@@ -184,7 +184,7 @@ SOURCES += \
     streaming/audio/audio.cpp \
     streaming/audio/renderers/sdlaud.cpp \
     streaming/video/logger.cpp \
-    streaming/video/testQueue.cpp \
+    streaming/video/playoutBuffer.cpp \
     gui/computermodel.cpp \
     gui/appmodel.cpp \
     streaming/streamutils.cpp \
@@ -221,7 +221,7 @@ HEADERS += \
     streaming/audio/renderers/renderer.h \
     streaming/audio/renderers/sdl.h \
     streaming/video/logger.h \
-    streaming/video/testQueue.h \
+    streaming/video/playoutBuffer.h \
     gui/computermodel.h \
     gui/appmodel.h \
     streaming/video/decoder.h \
