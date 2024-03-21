@@ -42,6 +42,9 @@ public:
         int getSleepOffVal();
         void adjustOffsetVal();
 
+        void incrementDeltaCount();
+        void resetDeltaCount();
+        int getDeltaCount();
         // PolicySpecific
         microseconds getAverageFrameTime();
         enum Policies
@@ -56,6 +59,7 @@ private:
         // queue variables
         std::queue<AVFrame *> m_buffer_queue;
         static std::shared_ptr<playoutBuffer> queueInstance;
+        int deltaFrameCount;
 
         // frametime/frame counter variables
         int m_frame_counter;           // count of frames seen

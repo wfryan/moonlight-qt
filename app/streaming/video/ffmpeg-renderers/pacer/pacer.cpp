@@ -533,9 +533,11 @@ void Pacer::renderFrame(AVFrame *frame)
     playoutBuffer->setQueueType(playoutBuffer::EPolicy); // EPolicy, IPolicy
     playoutBuffer->setQueueMonitor(true, 3);
     if(frame->key_frame){
-        logger->Log("Key", LogLevel::INFO);
+        logger->Log("Key, Delta Count: " + std::to_string(playoutBuffer->getDeltaCount()), LogLevel::INFO);
+        playoutBuffer->resetDeltaCount();
     }
     else{
+        playoutBuffer->incrementDeltaCount();
         logger->Log("Delta", LogLevel::INFO);
     }        // true, queueMonitor is on, false, monitor off, int is buffer target size
     // Initial buffer for I/E policy

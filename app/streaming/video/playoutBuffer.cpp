@@ -27,6 +27,8 @@ playoutBuffer::playoutBuffer()
     // time tracking variables
     micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch()); // program start in microseconds
 
+    //Frame type counter
+    deltaFrameCount = 0;
     // policy specific variables
     m_average_frametime = microseconds(8000); // Target frametime (old avg)
     m_alpha = 0.95;                             // alpha value in sleep time calculations
@@ -51,6 +53,16 @@ void playoutBuffer::setQueueMonitor(bool qmIn, int target)
     queueMon_mutex.unlock();
 }
 
+void playoutBuffer::incrementDeltaCount(){
+    deltaFrameCount++;
+}
+void playoutBuffer::resetDeltaCount(){
+    deltaFrameCount = 0;
+}
+int playoutBuffer::getDeltaCount(){
+    int delta = deltaFrameCount;
+    return delta;
+}
 playoutBuffer::playoutBuffer::Policies playoutBuffer::getQueueType()
 {
     queue_mutex.lock();
