@@ -531,7 +531,13 @@ void Pacer::renderFrame(AVFrame *frame)
     auto logger = Logger::GetInstance();
     auto playoutBuffer = playoutBuffer::GetInstance();
     playoutBuffer->setQueueType(playoutBuffer::EPolicy); // EPolicy, IPolicy
-    playoutBuffer->setQueueMonitor(true, 3);             // true, queueMonitor is on, false, monitor off, int is buffer target size
+    playoutBuffer->setQueueMonitor(true, 3);
+    if(frame->key_frame){
+        logger->Log("Key", LogLevel::INFO);
+    }
+    else{
+        logger->Log("Delta", LogLevel::INFO);
+    }        // true, queueMonitor is on, false, monitor off, int is buffer target size
     // Initial buffer for I/E policy
     // Fudge Factor
     // Initial Value for moving average (60hz)
