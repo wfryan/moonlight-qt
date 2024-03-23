@@ -408,6 +408,8 @@ void Pacer::renderFrameDequeueThread()
             microseconds start = playout_buffer->getElapsedTime();
             //  note: value of 20 currently has no effect, set by dequeuing variable
             AVFrame *framede = playout_buffer->dequeue();
+            microseconds end = playout_buffer->getElapsedTime();
+            microseconds run_time = (end - start);
 
             // parse for unecessary log statements
             logger->LogGraph(std::to_string((start - lastFrameTimeDequeueMicro).count()), "interFrameTimeDequeue");
@@ -484,10 +486,9 @@ void Pacer::renderFrameDequeueThread()
 
             /*****************************************END Pre-existing Code END  ***********************************/
 
-            microseconds end = playout_buffer->getElapsedTime();
-            microseconds run_time = (end - start);
+           
 
-            microseconds average_slp = playout_buffer->getAverageFrameTime(); // rename the varialbe here to averageFrameTime
+            microseconds average_slp = playout_buffer->getAverageFrameTime() * 4 / 5; // rename the varialbe here to averageFrameTime
 
             if (playout_buffer->getQueueMonitor())
             {
@@ -495,6 +496,7 @@ void Pacer::renderFrameDequeueThread()
             }
             int sleepOffset = playout_buffer->getSleepOffVal();
             microseconds expectedSleepTime = (average_slp - run_time - sleepForDifference - microseconds(sleepOffset));
+            logger->LogGraph(std::to_string(sleepOffset), "sleep_offset");
 
             if (expectedSleepTime > microseconds(0))
             {
@@ -516,12 +518,13 @@ void Pacer::renderFrameDequeueThread()
             }
             else
             {
+                logger->LogGraph(std::to_string((average_slp).count()), "average_slp");
+                logger->LogGraph(std::to_string((run_time).count()), "run_time");
                 logger->Log("sleep not necessary", LogLevel::INFO);
-                // reset sleepForDifference to 0 here
+                sleepForDifference = microseconds(0);
             }
         }
         sleep_for(microseconds(500)); // if not in dequeue state, sleep for .5 milliseconds
-        // enter fill state here again
         // readjust / refill parameter
     }
 }

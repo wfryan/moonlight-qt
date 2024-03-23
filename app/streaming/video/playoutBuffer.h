@@ -30,7 +30,8 @@ public:
         enum QueueState
         {
                 Filling,
-                Draining
+                Draining,
+                justFreed
         }; // Whether the Queue is draining or not
 
         // time-related

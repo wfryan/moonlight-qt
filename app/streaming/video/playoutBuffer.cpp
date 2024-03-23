@@ -20,7 +20,7 @@ playoutBuffer::playoutBuffer()
 
     // queue monitoring content
     m_last_frame_arrived_time = microseconds::zero(); // Time of last frame arrival in microseconds
-    m_constant_sleep_offset = 1220;                   // constant sleep offset value for queue monitor
+    m_constant_sleep_offset = 0;                   // constant sleep offset value for queue monitor
     m_sleep_offset_val = m_constant_sleep_offset;     // adjusting sleep offset value
     m_queue_monitor_target = 0;                       // Starting OffsetVal
 
@@ -95,15 +95,13 @@ void playoutBuffer::adjustOffsetVal()
     offset_mutex.lock(); // may need mutex because getSleepOffVal() and adjust OffsetVal() are called many times
     if (queueLength > m_queue_monitor_target)
     {
-        m_sleep_offset_val = m_constant_sleep_offset + (queueLength - m_queue_monitor_target) * 15;
+        m_sleep_offset_val += (queueLength - m_queue_monitor_target) * 5;
     }
     else if (queueLength < m_queue_monitor_target)
     {
-        m_sleep_offset_val = m_constant_sleep_offset - (m_queue_monitor_target - queueLength) * 15;
+        m_sleep_offset_val -= (m_queue_monitor_target - queueLength) * 5;
     }
-    else{
-        m_sleep_offset_val = m_constant_sleep_offset;
-    }
+
     offset_mutex.unlock();
 }
 
@@ -131,17 +129,21 @@ bool playoutBuffer::dequeueing()
                 m_queue_state = Draining;
                 return true;
             }
-
+            
             return false;
             break;
         case Draining:
             if (getQueueSize() == 0) // empty queue
             {
+                m_queue_state = Filling;
                 return false;
             }
 
             return true;
             break;
+        case justFreed:
+            m_queue_state = Filling;
+            return false;
         default:
             return false;
             break;
@@ -205,25 +207,26 @@ void playoutBuffer::enqueueIPolicy(AVFrame *frame)
     microseconds time_arrived = getElapsedTime();
     microseconds time_between_frames = time_arrived - m_last_frame_arrived_time;
 
-    if (m_frame_counter > 1)
+    if (m_frame_counter > 0)
     {
         m_frame_time_sum += time_between_frames;
         m_average_frametime = duration_cast<microseconds>((m_average_frametime * m_alpha) + (1 - m_alpha) * time_between_frames); // adjust the target frame time based on the current interframe time
     }
 
-    if (time_between_frames > (m_average_frametime * 2) && frame->key_frame == 0 && m_queue_state == Draining)
+    if (time_between_frames > (m_average_frametime * 2.5) && frame->key_frame == 0)
     {
         logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
         av_frame_free(&frame);
+        //m_queue_state = justFreed;
     }
     else
     {
         queue_mutex.lock(); // LOCKING SELF
         m_buffer_queue.push(frame);
-        m_frame_counter++; // count of frames
+        
     }
 
-
+    m_frame_counter++; // count of frames
     m_last_frame_arrived_time = time_arrived;
 
     queue_mutex.unlock(); // UNLOCKING SELF
