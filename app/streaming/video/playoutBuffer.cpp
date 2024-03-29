@@ -92,14 +92,17 @@ void playoutBuffer::adjustOffsetVal()
 {
     int queueLength = getQueueSize();
 
+
     offset_mutex.lock(); // may need mutex because getSleepOffVal() and adjust OffsetVal() are called many times
     if (queueLength > m_queue_monitor_target)
     {
-        m_sleep_offset_val += (queueLength - m_queue_monitor_target) * 5;
+        int delta = queueLength - m_queue_monitor_target;
+        m_sleep_offset_val += (delta * delta * delta) * 15;
     }
     else if (queueLength < m_queue_monitor_target)
     {
-        m_sleep_offset_val -= (m_queue_monitor_target - queueLength) * 5;
+        int delta = m_queue_monitor_target - queueLength;
+        m_sleep_offset_val -= (delta) * 15;
     }
 
     offset_mutex.unlock();
@@ -129,7 +132,7 @@ bool playoutBuffer::dequeueing()
                 m_queue_state = Draining;
                 return true;
             }
-            
+
             return false;
             break;
         case Draining:
@@ -223,7 +226,7 @@ void playoutBuffer::enqueueIPolicy(AVFrame *frame)
     {
         queue_mutex.lock(); // LOCKING SELF
         m_buffer_queue.push(frame);
-        
+
     }
 
     m_frame_counter++; // count of frames
