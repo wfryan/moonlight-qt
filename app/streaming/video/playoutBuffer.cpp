@@ -97,12 +97,12 @@ void playoutBuffer::adjustOffsetVal()
     if (queueLength > m_queue_monitor_target)
     {
         int delta = queueLength - m_queue_monitor_target;
-        m_sleep_offset_val += (delta * delta * delta) * 15;
+        m_sleep_offset_val += delta * delta * delta * 100;
     }
     else if (queueLength < m_queue_monitor_target)
     {
         int delta = m_queue_monitor_target - queueLength;
-        m_sleep_offset_val -= (delta) * 15;
+        m_sleep_offset_val -= delta * 15;
     }
 
     offset_mutex.unlock();
@@ -216,7 +216,7 @@ void playoutBuffer::enqueueIPolicy(AVFrame *frame)
         m_average_frametime = duration_cast<microseconds>((m_average_frametime * m_alpha) + (1 - m_alpha) * time_between_frames); // adjust the target frame time based on the current interframe time
     }
 
-    if (time_between_frames > (m_average_frametime * 2.5) && frame->key_frame == 0)
+    if (time_between_frames > (microseconds(33333)) && frame->key_frame == 0)
     {
         logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
         av_frame_free(&frame);
