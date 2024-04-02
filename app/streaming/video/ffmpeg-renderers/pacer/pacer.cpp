@@ -488,7 +488,7 @@ void Pacer::renderFrameDequeueThread()
 
            
 
-            microseconds average_slp = playout_buffer->getAverageFrameTime(); // rename the varialbe here to averageFrameTime
+            microseconds average_slp = playout_buffer->getAverageFrameTime() * 9 / 10; // rename the varialbe here to averageFrameTime
 
             if (playout_buffer->getQueueMonitor())
             {
@@ -506,7 +506,7 @@ void Pacer::renderFrameDequeueThread()
 
                 // sleep calculation and execution
                 microseconds beginSleepTime = playout_buffer->getElapsedTime();
-                sleep_for(expectedSleepTime); // need to account for sleep inaccuracies
+                sleep_for(microseconds(16670)); // need to account for sleep inaccuracies
                 microseconds endSleepTime = playout_buffer->getElapsedTime();
                 microseconds realSleepTime = (endSleepTime - beginSleepTime);
 
@@ -533,8 +533,8 @@ void Pacer::renderFrame(AVFrame *frame)
 {
     auto logger = Logger::GetInstance();
     auto playoutBuffer = playoutBuffer::GetInstance();
-    playoutBuffer->setQueueType(playoutBuffer::EPolicy); // EPolicy, IPolicy
-    playoutBuffer->setQueueMonitor(true, 8);
+    //playoutBuffer->setQueueType(playoutBuffer::EPolicy); // EPolicy, IPolicy
+    //playoutBuffer->setQueueMonitor(true, 8);
     if(frame->key_frame){
         logger->Log("Key, Delta Count: " + std::to_string(playoutBuffer->getDeltaCount()), LogLevel::INFO);
         playoutBuffer->resetDeltaCount();

@@ -1,6 +1,8 @@
 #include "playoutBuffer.h"
 #include "logger.h"
-
+#include "iostream"
+#include "fstream"
+#include "string"
 using namespace std::chrono;
 using Clock = steady_clock;
 using std::this_thread::sleep_for;
@@ -35,6 +37,7 @@ playoutBuffer::playoutBuffer()
     m_queue_limit = 2;
     m_queue_monitor_on = false;
     m_queue_state = Filling;
+    readConfig("C:/Users/claypool/Desktop/my_test/config.txt");
 }
 
 bool playoutBuffer::getQueueMonitor()
@@ -269,4 +272,36 @@ void playoutBuffer::enqueueEPolicy(AVFrame *frame)
     m_frame_counter++; // may be needed for logging
 
     logger->LogGraph(std::to_string(getQueueSize()), "queueSize");
+}
+
+void playoutBuffer::readConfig(std::string input){
+    bool qmon;
+    std::ifstream file;
+    file.open(input, std::ios::in);
+    std::string config;
+    std::string configs[3];
+    int count = 0;
+    if (file.is_open())
+    {
+        for (std::string line; getline(file,config,',');)
+    {
+        configs[count]=config;
+        count++;
+    }
+    if (configs[0]=="EPolicy")
+    {
+        setQueueType(EPolicy);
+    }else{
+        setQueueType(IPolicy);
+    }
+    if (configs[1]=="true")
+    {
+        qmon = true;
+    }else{
+        qmon = false;
+    } 
+    
+    setQueueMonitor(qmon,std::stoi(configs[2]));
+    }
+    
 }

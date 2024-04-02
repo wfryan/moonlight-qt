@@ -16,6 +16,7 @@
 #include <thread>
 #include "streaming/video/logger.h"
 
+
 // SDL_Thread* dequeue_thread;
 // pthread_t* test_dequeue;
 
@@ -304,8 +305,9 @@ LONG WINAPI UnhandledExceptionHandler(struct _EXCEPTION_POINTERS *ExceptionInfo)
 
 int main(int argc, char *argv[])
 {
-
+    
     auto logger = Logger::GetInstance();
+    
     std::vector<std::string> columnVector{"framesIn", "framesOut", "queueSize", "sleepValue", "interFrameTimeEnqueue", "interFrameTimeDequeue", "oversleepValue", "actualSleepTime", "average_slp", "run_time", "failed_dequeue", "sleep_offset"};
     logger->SetPrefs("C:/Users/claypool/Desktop/log_file_output_new", LogLevel::GRAPHING, columnVector);
     // std::vector<std::string> columnVector{"avg sleep val"};

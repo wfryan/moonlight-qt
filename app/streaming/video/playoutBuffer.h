@@ -33,7 +33,7 @@ public:
                 Draining,
                 justFreed
         }; // Whether the Queue is draining or not
-
+        void readConfig(std::string input);
         // time-related
         microseconds getElapsedTime();
 
@@ -55,6 +55,7 @@ public:
         }; // Queue policies. this simplifies identifying queue type
         void setQueueType(Policies queueType);
         Policies getQueueType();
+
 
 private:
         // queue variables
