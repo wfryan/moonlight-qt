@@ -26,6 +26,8 @@ playoutBuffer::playoutBuffer()
     m_sleep_offset_val = m_constant_sleep_offset;     // adjusting sleep offset value
     m_queue_monitor_target = 0;                       // Starting OffsetVal
 
+    m_constant_offset;
+
     // time tracking variables
     micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch()); // program start in microseconds
 
@@ -54,6 +56,10 @@ void playoutBuffer::setQueueMonitor(bool qmIn, int target)
     m_queue_monitor_on = qmIn;
     m_queue_monitor_target = target;
     queueMon_mutex.unlock();
+}
+
+int playoutBuffer::getConstantOffset(){
+    return m_constant_offset;
 }
 
 void playoutBuffer::incrementDeltaCount(){
@@ -275,33 +281,43 @@ void playoutBuffer::enqueueEPolicy(AVFrame *frame)
 }
 
 void playoutBuffer::readConfig(std::string input){
+
+    setQueueType(EPolicy);
+    m_queue_monitor_on = false;
+    
     bool qmon;
     std::ifstream file;
     file.open(input, std::ios::in);
     std::string config;
-    std::string configs[3];
+    
+    std::string configs[4];
     int count = 0;
     if (file.is_open())
     {
         for (std::string line; getline(file,config,',');)
-    {
-        configs[count]=config;
-        count++;
+        {
+            configs[count]=config;
+            count++;
+        }
+
+        if (configs[0]=="EPolicy")
+        {
+            setQueueType(EPolicy);
+        }else{
+            setQueueType(IPolicy);
+        }
+
+        if (configs[1]=="true")
+        {
+            qmon = true;
+        }else{
+            qmon = false;
+        }
+        m_constant_offset = std::stoi(configs[3]);
+
+
+        setQueueMonitor(qmon,std::stoi(configs[2]));
     }
-    if (configs[0]=="EPolicy")
-    {
-        setQueueType(EPolicy);
-    }else{
-        setQueueType(IPolicy);
-    }
-    if (configs[1]=="true")
-    {
-        qmon = true;
-    }else{
-        qmon = false;
-    } 
-    
-    setQueueMonitor(qmon,std::stoi(configs[2]));
-    }
+    file.close();
     
 }

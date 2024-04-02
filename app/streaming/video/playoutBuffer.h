@@ -42,6 +42,7 @@ public:
         void setQueueMonitor(bool qmIn, int target);
         int getSleepOffVal();
         void adjustOffsetVal();
+        int getConstantOffset();
 
         void incrementDeltaCount();
         void resetDeltaCount();
@@ -72,6 +73,8 @@ private:
         int m_constant_sleep_offset; // the constant that is modified by sleep offset
         int m_sleep_offset_val;      // current sleep offset from Queue Monitoring
         int m_queue_monitor_target;  // target value of frames in queue
+
+        int m_constant_offset;
 
         // time tracking variables
         microseconds micro_start;               // program start in microsecond

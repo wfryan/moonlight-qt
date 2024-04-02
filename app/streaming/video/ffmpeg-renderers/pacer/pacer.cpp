@@ -488,14 +488,14 @@ void Pacer::renderFrameDequeueThread()
 
            
 
-            microseconds average_slp = playout_buffer->getAverageFrameTime() * 9 / 10; // rename the varialbe here to averageFrameTime
+            microseconds average_slp = playout_buffer->getAverageFrameTime(); // rename the varialbe here to averageFrameTime
 
             if (playout_buffer->getQueueMonitor())
             {
                 playout_buffer->adjustOffsetVal();
             }
             int sleepOffset = playout_buffer->getSleepOffVal();
-            microseconds expectedSleepTime = (average_slp - run_time - sleepForDifference - microseconds(sleepOffset));
+            microseconds expectedSleepTime = (average_slp - run_time - sleepForDifference - microseconds(playout_buffer->getConstantOffset()));
             logger->LogGraph(std::to_string(sleepOffset), "sleep_offset");
 
             if (expectedSleepTime > microseconds(0))
