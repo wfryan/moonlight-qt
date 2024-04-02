@@ -26,7 +26,6 @@ playoutBuffer::playoutBuffer()
     m_sleep_offset_val = m_constant_sleep_offset;     // adjusting sleep offset value
     m_queue_monitor_target = 0;                       // Starting OffsetVal
 
-    m_constant_offset;
 
     // time tracking variables
     micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch()); // program start in microseconds
@@ -58,9 +57,6 @@ void playoutBuffer::setQueueMonitor(bool qmIn, int target)
     queueMon_mutex.unlock();
 }
 
-int playoutBuffer::getConstantOffset(){
-    return m_constant_offset;
-}
 
 void playoutBuffer::incrementDeltaCount(){
     deltaFrameCount++;
@@ -96,6 +92,8 @@ int playoutBuffer::getSleepOffVal()
     return tempVal;
 }
 
+
+
 // adjust the sleep offset value based on queue size.
 void playoutBuffer::adjustOffsetVal()
 {
@@ -105,13 +103,13 @@ void playoutBuffer::adjustOffsetVal()
     offset_mutex.lock(); // may need mutex because getSleepOffVal() and adjust OffsetVal() are called many times
     if (queueLength > m_queue_monitor_target)
     {
-        int delta = queueLength - m_queue_monitor_target;
-        m_sleep_offset_val += delta * delta * delta * 100;
+        m_sleep_offset_val = m_max_offset; //3000
     }
     else if (queueLength < m_queue_monitor_target)
     {
-        int delta = m_queue_monitor_target - queueLength;
-        m_sleep_offset_val -= delta * 15;
+        m_sleep_offset_val = m_min_offset; //1250
+    } else {
+        m_sleep_offset_val = m_correct_offset; //2500
     }
 
     offset_mutex.unlock();
@@ -290,7 +288,7 @@ void playoutBuffer::readConfig(std::string input){
     file.open(input, std::ios::in);
     std::string config;
     
-    std::string configs[4];
+    std::string configs[6];
     int count = 0;
     if (file.is_open())
     {
@@ -313,7 +311,9 @@ void playoutBuffer::readConfig(std::string input){
         }else{
             qmon = false;
         }
-        m_constant_offset = std::stoi(configs[3]);
+        m_correct_offset = std::stoi(configs[3]);
+        m_min_offset = std::stoi(configs[4]);
+        m_max_offset = std::stoi(configs[5]);
 
 
         setQueueMonitor(qmon,std::stoi(configs[2]));

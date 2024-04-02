@@ -495,7 +495,7 @@ void Pacer::renderFrameDequeueThread()
                 playout_buffer->adjustOffsetVal();
             }
             int sleepOffset = playout_buffer->getSleepOffVal();
-            microseconds expectedSleepTime = (average_slp - run_time - sleepForDifference - microseconds(playout_buffer->getConstantOffset()));
+            microseconds expectedSleepTime = (average_slp - run_time - sleepForDifference - microseconds(sleepOffset));
             logger->LogGraph(std::to_string(sleepOffset), "sleep_offset");
 
             if (expectedSleepTime > microseconds(0))
@@ -506,7 +506,7 @@ void Pacer::renderFrameDequeueThread()
 
                 // sleep calculation and execution
                 microseconds beginSleepTime = playout_buffer->getElapsedTime();
-                sleep_for(microseconds(16670)); // need to account for sleep inaccuracies
+                sleep_for(expectedSleepTime); // need to account for sleep inaccuracies
                 microseconds endSleepTime = playout_buffer->getElapsedTime();
                 microseconds realSleepTime = (endSleepTime - beginSleepTime);
 
