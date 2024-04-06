@@ -106,8 +106,6 @@ double playoutBuffer::getSleepSlope(){
 
 double playoutBuffer::addVectorPair(double value, double time)
 {
-    bool changeLinReg = true;
-
     vector_mutex.lock();
 
     //start array time values at 0
@@ -134,9 +132,7 @@ double playoutBuffer::addVectorPair(double value, double time)
         m_lin_reg_total_sum_XX -= m_average_sleep_vector.front().time_recorded * m_average_sleep_vector.front().time_recorded;
 
         m_average_sleep_vector.erase(m_average_sleep_vector.begin());
-    } else {
-        changeLinReg = false;
-    }
+    } 
 
     //always add in the last value
     m_lin_reg_total_sum_X += m_average_sleep_vector.back().time_recorded;
@@ -147,20 +143,17 @@ double playoutBuffer::addVectorPair(double value, double time)
     m_lin_reg_total_sum_XX += m_average_sleep_vector.back().time_recorded * m_average_sleep_vector.back().time_recorded;
     printf("you're good...\n");
 
-    if(changeLinReg){
+    
         //Calculate slope
         double m_sleep_change = (m_VECTOR_MAX_LENGTH * m_lin_reg_total_sum_XY - m_lin_reg_total_sum_X * m_lin_reg_total_sum_Y) / (m_VECTOR_MAX_LENGTH * m_lin_reg_total_sum_XX - m_lin_reg_total_sum_X * m_lin_reg_total_sum_X);
         if(m_sleep_change != m_sleep_change){
             //return std::to_string(m_lin_reg_total_sum_X) + "<>" + std::to_string(m_lin_reg_total_sum_Y) + "<>" +std::to_string(m_lin_reg_total_sum_XX)+ "<>" + std::to_string(m_lin_reg_total_sum_XY) + "<>";
-            m_sleep_change = -10;
+            m_sleep_change = 0;
             //dontRun = true;
         }
         vector_mutex.unlock();
         return m_sleep_change;
-    } else {
-        vector_mutex.unlock();
-        return -1;
-    }
+    
 }
 
 // Get the current sleep offset value
@@ -180,23 +173,33 @@ void playoutBuffer::adjustOffsetVal()
 
     offset_mutex.lock(); // may need mutex because getSleepOffVal() and adjust OffsetVal() are called many times
 
-
+    int delta = std::abs(queueLength - m_queue_monitor_target);
     if (queueLength > m_queue_monitor_target)
     {
-        m_sleep_offset_val = m_max_offset;
-        if(getSleepSlope() >= 0){
-            m_max_offset += 20;
+        if(getSleepSlope() >= 0.0){
+            m_max_offset += delta * delta * 15;
         }
+        m_sleep_offset_val += m_max_offset;
     }
     if (queueLength < m_queue_monitor_target)
-    {
+    {   
+        //beginning case
+        if(m_min_offset == 0){
+            m_min_offset = m_max_offset;
         
-        m_sleep_offset_val = m_min_offset;
-        if(getSleepSlope() <= 0){
-            m_max_offset -= 20;
+        
         }
+        if(getSleepSlope() <= 0.0){
+            m_sleep_offset_val -= delta * delta * 15;
+        } else if(getSleepSlope() > 0.0){
+            //m_min_offset -= 20;
+            m_sleep_offset_val -= delta * delta * 1;
+        }
+        //m_sleep_offset_val = m_min_offset;
     } else{
-        m_sleep_offset_val = 2500;
+        
+        //m_sleep_offset_val = m_min_offset;
+        
     }
         
 
