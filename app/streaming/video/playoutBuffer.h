@@ -7,6 +7,7 @@
 #include <queue>
 #include <mutex>
 #include <thread>
+#include <vector>
 #include "decoder.h"
 #include "ffmpeg-renderers/renderer.h"
 #include <libavutil/frame.h>
@@ -20,6 +21,12 @@ public:
         // class functions
         playoutBuffer();                                     // constructor
         static std::shared_ptr<playoutBuffer> GetInstance(); // pointer of queue instance
+
+        struct Pair{
+                long double recorded_sleep;
+                long double time_recorded;
+
+        };
 
         // queue variables
         int getQueueSize();
@@ -36,12 +43,15 @@ public:
         void readConfig(std::string input);
         // time-related
         microseconds getElapsedTime();
+        double getSleepSlope();
 
         // queueMonitor
         bool getQueueMonitor();
         void setQueueMonitor(bool qmIn, int target);
         int getSleepOffVal();
         void adjustOffsetVal();
+
+        double addVectorPair(double value, double time);
 
         void incrementDeltaCount();
         void resetDeltaCount();
@@ -73,6 +83,18 @@ private:
         int m_sleep_offset_val;      // current sleep offset from Queue Monitoring
         int m_queue_monitor_target;  // target value of frames in queue
 
+        std::vector<Pair> m_average_sleep_vector;
+        const int m_VECTOR_MAX_LENGTH = 50;
+        microseconds m_average_sleep_ratio;
+        //linear regression variables
+        double m_sleep_change;
+        long double m_lin_reg_total_sum_X;
+        long double m_lin_reg_total_sum_Y;
+        long double m_lin_reg_total_sum_XY;
+        long double m_lin_reg_total_sum_XX;
+
+
+
         int m_correct_offset;
         int m_min_offset;
         int m_max_offset;
@@ -94,4 +116,6 @@ private:
         std::mutex sleepTime_mutex;
         std::mutex queueMon_mutex;
         std::mutex offset_mutex;
+        std::mutex vector_mutex;
+        std::mutex linear_regression_mutex;
 };

@@ -17,24 +17,35 @@ playoutBuffer::playoutBuffer()
     std::queue<AVFrame *> m_buffer_queue; // buffer queue of frames
 
     // frametime/frame counter variables
-    m_frame_counter = 0;                    // count of frames seen
-    m_frame_time_sum = microseconds(0);     // sum of interframe times microseconds
+    m_frame_counter = 0;                // count of frames seen
+    m_frame_time_sum = microseconds(0); // sum of interframe times microseconds
 
     // queue monitoring content
     m_last_frame_arrived_time = microseconds::zero(); // Time of last frame arrival in microseconds
-    m_constant_sleep_offset = 0;                   // constant sleep offset value for queue monitor
+    m_constant_sleep_offset = 0;                      // constant sleep offset value for queue monitor
     m_sleep_offset_val = m_constant_sleep_offset;     // adjusting sleep offset value
     m_queue_monitor_target = 0;                       // Starting OffsetVal
+    m_sleep_change = 0;
 
+    m_lin_reg_total_sum_X = 0;
+    m_lin_reg_total_sum_Y = 0;
+    m_lin_reg_total_sum_XX = 0;
+    m_lin_reg_total_sum_XY = 0;
+
+    m_average_sleep_ratio = microseconds::zero();
+
+    m_correct_offset = 2500;
+    m_min_offset = 2500;
+    m_max_offset = 2500;
 
     // time tracking variables
     micro_start = duration_cast<microseconds>(system_clock::now().time_since_epoch()); // program start in microseconds
 
-    //Frame type counter
+    // Frame type counter
     deltaFrameCount = 0;
     // policy specific variables
     m_average_frametime = microseconds(8000); // Target frametime (old avg)
-    m_alpha = 0.95;                             // alpha value in sleep time calculations
+    m_alpha = 0.95;                           // alpha value in sleep time calculations
     m_queue_limit = 2;
     m_queue_monitor_on = false;
     m_queue_state = Filling;
@@ -57,14 +68,16 @@ void playoutBuffer::setQueueMonitor(bool qmIn, int target)
     queueMon_mutex.unlock();
 }
 
-
-void playoutBuffer::incrementDeltaCount(){
+void playoutBuffer::incrementDeltaCount()
+{
     deltaFrameCount++;
 }
-void playoutBuffer::resetDeltaCount(){
+void playoutBuffer::resetDeltaCount()
+{
     deltaFrameCount = 0;
 }
-int playoutBuffer::getDeltaCount(){
+int playoutBuffer::getDeltaCount()
+{
     int delta = deltaFrameCount;
     return delta;
 }
@@ -83,6 +96,73 @@ void playoutBuffer::setQueueType(playoutBuffer::Policies queueType)
     queue_mutex.unlock();
 }
 
+double playoutBuffer::getSleepSlope(){
+    double tempSleepRate;
+    vector_mutex.lock();
+    tempSleepRate = m_sleep_change;
+    vector_mutex.unlock();
+    return tempSleepRate;
+}
+
+double playoutBuffer::addVectorPair(double value, double time)
+{
+    bool changeLinReg = true;
+
+    vector_mutex.lock();
+
+    //start array time values at 0
+    long double tempTime = 0;
+    if(m_average_sleep_vector.size() > 0){
+        tempTime = time - m_average_sleep_vector.front().time_recorded;
+    }
+
+    Pair pair{
+        value,
+        tempTime,
+    };
+
+    m_average_sleep_vector.push_back(pair);
+    if (m_average_sleep_vector.size() > m_VECTOR_MAX_LENGTH)
+    {
+        //printf("%Lf",m_average_sleep_vector.front().recorded_sleep);
+
+        //remove for removed lin reg values
+        m_lin_reg_total_sum_X -= m_average_sleep_vector.front().time_recorded;
+        printf("#OTHER%Lf", m_lin_reg_total_sum_Y);
+        m_lin_reg_total_sum_Y -= m_average_sleep_vector.front().recorded_sleep;
+        m_lin_reg_total_sum_XY -= m_average_sleep_vector.front().time_recorded * m_average_sleep_vector.front().recorded_sleep;
+        m_lin_reg_total_sum_XX -= m_average_sleep_vector.front().time_recorded * m_average_sleep_vector.front().time_recorded;
+
+        m_average_sleep_vector.erase(m_average_sleep_vector.begin());
+    } else {
+        changeLinReg = false;
+    }
+
+    //always add in the last value
+    m_lin_reg_total_sum_X += m_average_sleep_vector.back().time_recorded;
+    //return 20;
+    printf("%Lf", m_lin_reg_total_sum_Y);
+    m_lin_reg_total_sum_Y += m_average_sleep_vector.back().recorded_sleep;
+    m_lin_reg_total_sum_XY += m_average_sleep_vector.back().time_recorded * m_average_sleep_vector.back().recorded_sleep;
+    m_lin_reg_total_sum_XX += m_average_sleep_vector.back().time_recorded * m_average_sleep_vector.back().time_recorded;
+    printf("you're good...\n");
+
+    if(changeLinReg){
+        //Calculate slope
+        double m_sleep_change = (m_VECTOR_MAX_LENGTH * m_lin_reg_total_sum_XY - m_lin_reg_total_sum_X * m_lin_reg_total_sum_Y) / (m_VECTOR_MAX_LENGTH * m_lin_reg_total_sum_XX - m_lin_reg_total_sum_X * m_lin_reg_total_sum_X);
+        if(m_sleep_change != m_sleep_change){
+            //return std::to_string(m_lin_reg_total_sum_X) + "<>" + std::to_string(m_lin_reg_total_sum_Y) + "<>" +std::to_string(m_lin_reg_total_sum_XX)+ "<>" + std::to_string(m_lin_reg_total_sum_XY) + "<>";
+            m_sleep_change = -10;
+            //dontRun = true;
+        }
+        vector_mutex.unlock();
+        return m_sleep_change;
+    } else {
+        vector_mutex.unlock();
+        return -1;
+    }
+}
+
 // Get the current sleep offset value
 int playoutBuffer::getSleepOffVal()
 {
@@ -92,8 +172,6 @@ int playoutBuffer::getSleepOffVal()
     return tempVal;
 }
 
-
-
 // adjust the sleep offset value based on queue size.
 void playoutBuffer::adjustOffsetVal()
 {
@@ -101,16 +179,26 @@ void playoutBuffer::adjustOffsetVal()
 
 
     offset_mutex.lock(); // may need mutex because getSleepOffVal() and adjust OffsetVal() are called many times
+
+
     if (queueLength > m_queue_monitor_target)
     {
-        m_sleep_offset_val = m_max_offset; //3000
+        m_sleep_offset_val = m_max_offset;
+        if(getSleepSlope() >= 0){
+            m_max_offset += 20;
+        }
     }
-    else if (queueLength < m_queue_monitor_target)
+    if (queueLength < m_queue_monitor_target)
     {
-        m_sleep_offset_val = m_min_offset; //1250
-    } else {
-        m_sleep_offset_val = m_correct_offset; //2500
+        
+        m_sleep_offset_val = m_min_offset;
+        if(getSleepSlope() <= 0){
+            m_max_offset -= 20;
+        }
+    } else{
+        m_sleep_offset_val = 2500;
     }
+        
 
     offset_mutex.unlock();
 }
@@ -227,13 +315,12 @@ void playoutBuffer::enqueueIPolicy(AVFrame *frame)
     {
         logger->Log(("Frame arrived late deleting" + std::to_string(frame->pts)), LogLevel::INFO);
         av_frame_free(&frame);
-        //m_queue_state = justFreed;
+        // m_queue_state = justFreed;
     }
     else
     {
         queue_mutex.lock(); // LOCKING SELF
         m_buffer_queue.push(frame);
-
     }
 
     m_frame_counter++; // count of frames
@@ -278,46 +365,49 @@ void playoutBuffer::enqueueEPolicy(AVFrame *frame)
     logger->LogGraph(std::to_string(getQueueSize()), "queueSize");
 }
 
-void playoutBuffer::readConfig(std::string input){
+void playoutBuffer::readConfig(std::string input)
+{
 
     setQueueType(EPolicy);
     m_queue_monitor_on = false;
-    
+
     bool qmon;
     std::ifstream file;
     file.open(input, std::ios::in);
     std::string config;
-    
+
     std::string configs[6];
     int count = 0;
     if (file.is_open())
     {
-        for (std::string line; getline(file,config,',');)
+        for (std::string line; getline(file, config, ',');)
         {
-            configs[count]=config;
+            configs[count] = config;
             count++;
         }
 
-        if (configs[0]=="EPolicy")
+        if (configs[0] == "EPolicy")
         {
             setQueueType(EPolicy);
-        }else{
+        }
+        else
+        {
             setQueueType(IPolicy);
         }
 
-        if (configs[1]=="true")
+        if (configs[1] == "true")
         {
             qmon = true;
-        }else{
+        }
+        else
+        {
             qmon = false;
         }
         m_correct_offset = std::stoi(configs[3]);
         m_min_offset = std::stoi(configs[4]);
         m_max_offset = std::stoi(configs[5]);
 
-
-        setQueueMonitor(qmon,std::stoi(configs[2]));
+        setQueueMonitor(qmon, std::stoi(configs[2]));
     }
     file.close();
-    
 }

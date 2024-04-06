@@ -412,7 +412,7 @@ void Pacer::renderFrameDequeueThread()
             microseconds run_time = (end - start);
 
             // parse for unecessary log statements
-            logger->LogGraph(std::to_string((start - lastFrameTimeDequeueMicro).count()), "interFrameTimeDequeue");
+            //logger->LogGraph(std::to_string((start - lastFrameTimeDequeueMicro).count()), "interFrameTimeDequeue");
 
             lastFrameTimeDequeueMicro = playout_buffer->getElapsedTime();
 
@@ -498,11 +498,15 @@ void Pacer::renderFrameDequeueThread()
             microseconds expectedSleepTime = (average_slp - run_time - sleepForDifference - microseconds(sleepOffset));
             logger->LogGraph(std::to_string(sleepOffset), "sleep_offset");
 
+
+            
+
             if (expectedSleepTime > microseconds(0))
             {
 
                 logger->LogGraph(std::to_string(average_slp.count()), "sleepValue");
                 logger->LogGraph(std::to_string(sleepForDifference.count()), "oversleepValue");
+                
 
                 // sleep calculation and execution
                 microseconds beginSleepTime = playout_buffer->getElapsedTime();
@@ -510,7 +514,11 @@ void Pacer::renderFrameDequeueThread()
                 microseconds endSleepTime = playout_buffer->getElapsedTime();
                 microseconds realSleepTime = (endSleepTime - beginSleepTime);
 
-                logger->LogGraph(std::to_string((endSleepTime - beginSleepTime).count()), "actualSleepTime");
+                logger->LogGraph(std::to_string(realSleepTime.count()), "actualSleepTime");
+
+                double slope = playout_buffer->addVectorPair(realSleepTime.count(), playout_buffer->getElapsedTime().count());
+                logger->LogGraph(std::to_string(slope), "interFrameTimeDequeue");
+
                 logger->LogGraph(std::to_string((average_slp).count()), "average_slp");
                 logger->LogGraph(std::to_string((run_time).count()), "run_time");
 
